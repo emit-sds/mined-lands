@@ -1,0 +1,4 @@
+# python -m build --wheel # May need to install build
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

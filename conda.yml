@@ -1,0 +1,24 @@
+name: amd
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.10
+  - datashader # hvplot dependency
+  - holoviews  # plotting
+  - hvplot     # plotting
+  - earthpy
+  - matplotlib # plotting
+  - netCDF4
+  - numpy
+  - plotly     # plotting
+  - nbformat   # plotly dependency
+  - rasterio
+  - rioxarray
+  - xarray
+  - h5netcdf # emit_tools dependency
+  - s3fs     # emit_tools dependency
+  - spectral # emit_tools dependency
+  - pip:
+    - mlky

@@ -1,0 +1,11 @@
+# System generated files
+__pycache__
+.DS_Store
+*.egg-info/
+
+# Dev files
+.local/
+
+# builds
+build/
+dist/
