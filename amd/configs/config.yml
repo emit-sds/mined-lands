@@ -10,9 +10,7 @@ default:
     overwrite: False
   dir: \
   file: ${.dir}/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
-  subselect: # ALUM GULCH, LEAD QUEEN
-    latitude: [31.45, 31.55]
-    longitude: [-110.8, -110.7]
+
   classify:
     group_1_mineral_id:
       filter: group_1_band_depth > .001
@@ -43,6 +41,12 @@ local:
 quiet:
   log:
     terminal: INFO
+
+# ALUM GULCH, LEAD QUEEN
+loc1:
+  subselect:
+    latitude: [31.45, 31.55]
+    longitude: [-110.8, -110.7]
 
 g1:
   hashmap:
