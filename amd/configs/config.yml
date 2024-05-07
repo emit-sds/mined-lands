@@ -36,7 +36,7 @@ full:
     6: [67]
 
 local:
-  dir: /Users/jamesmo/projects/emit-amd/dev/.local/data/
+  dir: /path/to/your/input/data
   output:
     dir: ./output
 
