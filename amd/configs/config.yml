@@ -1,0 +1,69 @@
+default:
+  download:
+    urls:
+      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20231015T215344_2328814_020/EMIT_L2A_RFL_001_20231015T215344_2328814_020.nc
+      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20231015T215344_2328814_020/EMIT_L2A_RFLUNCERT_001_20231015T215344_2328814_020.nc
+      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20231015T215344_2328814_020/EMIT_L2A_MASK_001_20231015T215344_2328814_020.nc
+      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BMIN.001/EMIT_L2B_MIN_001_20231015T215344_2328814_020/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
+      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BMIN.001/EMIT_L2B_MIN_001_20231015T215344_2328814_020/EMIT_L2B_MINUNCERT_001_20231015T215344_2328814_020.nc
+    output: /Users/jamesmo/projects/emit-amd/dev/.local/data
+    overwrite: False
+  dir: \
+  file: ${.dir}/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
+  subselect: # ALUM GULCH, LEAD QUEEN
+    latitude: [31.45, 31.55]
+    longitude: [-110.8, -110.7]
+  classify:
+    group_1_mineral_id:
+      filter: group_1_band_depth > .001
+      default: .nan
+    group_2_mineral_id:
+      filter: group_2_band_depth > .001
+      default: .nan
+  output:
+    merge: true
+    geotiff:
+      crs: epsg:4326
+    netcdf: true
+
+full:
+  hashmap: # Minerals mapping
+    1: [10]
+    2: [9, 15, 49, 204, 205, 206]
+    3: [3, 5, 6, 7, 8, 9, 18]
+    4: [30, 31, 32, 33, 45, 47]
+    5: [11]
+    6: [67]
+
+local:
+  dir: /Users/jamesmo/projects/emit-amd/dev/.local/data/
+  output:
+    dir: ./output
+
+quiet:
+  log:
+    terminal: INFO
+
+g1:
+  hashmap:
+    1: [10]
+
+g2:
+  hashmap:
+    2: [9, 15, 49, 204, 205, 206]
+
+g3:
+  hashmap:
+    3: [3, 5, 6, 7, 8, 9, 18]
+
+g4:
+  hashmap:
+    4: [30, 31, 32, 33, 45, 47]
+
+g5:
+  hashmap:
+    5: [11]
+
+g6:
+  hashmap:
+    6: [67]
