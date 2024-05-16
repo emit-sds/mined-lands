@@ -1,16 +1,15 @@
 default:
-  download:
-    urls:
-      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20231015T215344_2328814_020/EMIT_L2A_RFL_001_20231015T215344_2328814_020.nc
-      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20231015T215344_2328814_020/EMIT_L2A_RFLUNCERT_001_20231015T215344_2328814_020.nc
-      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20231015T215344_2328814_020/EMIT_L2A_MASK_001_20231015T215344_2328814_020.nc
-      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BMIN.001/EMIT_L2B_MIN_001_20231015T215344_2328814_020/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
-      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BMIN.001/EMIT_L2B_MIN_001_20231015T215344_2328814_020/EMIT_L2B_MINUNCERT_001_20231015T215344_2328814_020.nc
-    output: /Users/jamesmo/projects/emit-amd/dev/.local/data
-    overwrite: False
   dir: \
-  file: ${.dir}/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
-
+  input:
+    bands:
+      1: group_1_band_depth
+      2: group_1_mineral_id
+      3: group_2_band_depth
+      4: group_2_mineral_id
+    rename:
+      y: latitude
+      x: longitude
+    file: ${.dir}/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
   classify:
     group_1_mineral_id:
       filter: group_1_band_depth > .001
@@ -32,6 +31,14 @@ full:
     4: [30, 31, 32, 33, 45, 47]
     5: [11]
     6: [67]
+  colors:
+    #  [R, G, B, A]
+    1: [255, 1, 1, 255]
+    2: [1, 255, 1, 255]
+    3: [1, 1, 255, 255]
+    4: [255, 255, 1, 255]
+    5: [1, 255, 255, 255]
+    6: [255, 1, 255, 255]
 
 local:
   dir: /path/to/your/input/data

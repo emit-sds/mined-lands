@@ -51,6 +51,35 @@ def classify(ds, hashmap, filter=None, default=np.nan):
     return ds
 
 
+def colorize(ds, colors):
+    """
+    Converts an xarray object into a 4 band RGBA mapping of values to color values
+
+    Parameters
+    ----------
+    ds: xr.Dataset, xr.DataArray
+        Xarray object to map the values of to a color map
+    colors: dict
+        Mapping of {value: [R, G, B, A]} to convert values to
+
+    Returns
+    -------
+    cs: xr.Dataset, xr.DataArray
+        Xarray object with a new dimension 'band' for RGBA
+    """
+    bands = []
+    rgba  = ['R', 'G', 'B', 'A']
+    for i, band in enumerate(rgba):
+        hashmap = {float(group): float(color[i]) for group, color in colors.items()}
+        bands.append(classify(ds, hashmap))
+
+    # [C]olored [S]et
+    cs = xr.concat(bands, dim='band').astype(np.uint8)
+    cs['band'] = rgba
+
+    return cs
+
+
 def subselect(ds):
     """
     Subselects along dimensions. Auto discover which way the sel slice should be constructed
@@ -146,6 +175,39 @@ def save(da, base, name=None):
         Logger.info(f'Wrote geotiff to: {out}.tiff')
 
 
+def load_raster(file, rename={}, bands=[]):
+    """
+    Loads an EMIT raster file. Auto splits the 'band' dimension into individual
+    variables and renames the coordinates, if provided
+
+    Parameters
+    ----------
+    file: str
+        Path to an EMIT rasterized file to load
+    rename: dict
+        Rename keys before returning
+    bands: list
+        Exchange the 'band' dim values
+
+    Returns
+    -------
+    ds: xr.Dataset
+        Loaded xarray object
+    """
+    ds = xr.load_dataset(file, engine='rasterio')
+
+    # Split the band dimension
+    if bands:
+        ds['band'] = bands
+        ds = ds['band_data'].to_dataset('band')
+
+    # Rename dimensions
+    if rename:
+        ds = ds.rename(**C.input.rename)
+
+    return ds
+
+
 def main(ret='yield'):
     """
     Main processing function for classifying an EMIT scene into a mineral map
@@ -160,8 +222,13 @@ def main(ret='yield'):
 
     """
     # Load the data
-    file = Path(C.file)
-    ds = emit_xarray(file, ortho=True)
+    file = Path(C.input.file)
+    if file.suffix == 'nc':
+        Logger.info('Loading using emit_xarray')
+        ds = emit_xarray(file, ortho=True)
+    else:
+        Logger.info('Loading using load_raster')
+        ds = load_raster(file, rename=C.input.rename, bands=C.input.bands.values())
 
     if C.subselect:
         ds = subselect(ds)
@@ -169,13 +236,13 @@ def main(ret='yield'):
     Logger.info(f'Working shape: {ds.sizes}')
 
     # Create a hashmap from the Config dict
-    hashmap = {val: key for key, vals in C.hashmap.items() for val in vals}
+    hashmap = {float(val): float(key) for key, vals in C.hashmap.items() for val in vals}
 
     if not hashmap:
         Logger.error('No hashmap defined, returning')
         return
 
-    hold = []
+    hold = {'classify': [], 'colors': []}
     for key, opts in C.classify.items():
         Logger.info(f'Processing on key: {key}')
 
@@ -186,20 +253,36 @@ def main(ret='yield'):
         cs = classify(ds[key], hashmap=hashmap, **opts)
 
         if C.output.dir:
+            if C.colors:
+                Logger.info('Colorizing')
+                ns = colorize(cs, C.colors)
+
+                save(ns, f'{file.stem}', name=f'{key}-color')
+                hold['colors'].append(ns)
+
             save(cs, file.stem)
 
         if ret == 'yield':
             yield cs
         elif ret == 'merge':
-            hold.append(cs)
+            hold['classify'].append(cs)
         else:
             del cs
 
-    if hold:
+    if hold['classify']:
         Logger.info('Merging arrays together')
-        ds = xr.merge(hold)
+
+        ds = xr.merge(hold['classify'])
         if C.output.dir:
             save(ds, file.stem, name='merged')
+
+        if hold['colors']:
+            ds = xr.merge(hold['colors'])
+            try:
+                save(ds, file.stem, name='merged-color')
+            except:
+                # tiff saving merged colors is not supported, exception expected
+                pass
 
 
 @click.command()
