@@ -78,3 +78,12 @@ g5:
 g6:
   hashmap:
     6: [67]
+
+cluster:
+  dir: /scratch/amd/data/mosaics/glts_5_cloudy_20240120_global/l2b/
+  output:
+    dir: /scratch/amd/data/mosaics/output/v1
+
+mosaic:
+  input:
+    file: ${.dir}/*

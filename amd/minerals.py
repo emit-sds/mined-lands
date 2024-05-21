@@ -1,4 +1,5 @@
 # Builtins
+import glob
 import logging
 
 from datetime import datetime as dtt
@@ -305,8 +306,17 @@ def cli(config, patch, print):
         start = dtt.now()
         try:
             ret = 'merge' if C.output.merge else None
-            for _ in main(ret):
-                pass
+
+            # If the file was a glob, process each input file separately
+            if glob.has_magic(C.input.file):
+                files = glob.glob(C.input.file)
+
+                for file in files:
+                    C.input.file = file
+                    for _ in main(ret): pass
+
+            else:
+                for _ in main(ret): pass
         except:
             Logger.exception(f'Caught a critical exception')
         finally:
