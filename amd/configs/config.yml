@@ -18,10 +18,10 @@ default:
       filter: group_2_band_depth > .001
       default: .nan
   output:
-    merge: true
+    merge: false
     geotiff:
       crs: epsg:4326
-    netcdf: true
+    netcdf: false
 
 full:
   hashmap: # Minerals mapping
@@ -41,7 +41,7 @@ full:
     6: [255, 1, 255, 255]
 
 local:
-  dir: /path/to/your/input/data
+  dir: \
   output:
     dir: ./output
 
@@ -87,3 +87,27 @@ cluster:
 mosaic:
   input:
     file: ${.dir}/*
+
+v1:
+  hashmap: # Minerals mapping
+    1: [10] # pyrite
+    2: [3, 5, 6, 7, 8, 9, 18] # goethite
+    3: [30, 31, 32, 33, 45, 47] # hematite
+    4: [9, 15, 49, 204, 205, 206] # jarosite
+    5: [11] # schwertmannite
+    6: [67] # copiapite
+    7: [126, 184, 211, 212, 213, 214, 215, 216, 217, 218, 219, 225, 226, 227, 229, 230, 231, 232] # Ca,Mg-carbonates
+    8: [58, 63, 64, 220, 240, 241, 267, 270, 271] # other carboantes
+    9: [93, 153, 154, 155, 156, 237, 287] # Ca,Mg,Al (hydr)oxides
+    10: [17, 27, 38, 125, 127, 128, 129, 130, 131, 132, 177, 178, 189, 190, 202] # soluble silicates (+ phosphates)
+  colors:
+    3: [209, 187, 215, 255]
+    2: [174, 118, 163, 255]
+    10: [136, 46, 114, 255]
+    9: [25, 101, 176, 255]
+    8: [82, 137, 199, 255]
+    7: [123, 175, 222, 255]
+    6: [247, 240, 87, 255]
+    5: [246, 193, 65, 255]
+    4: [241, 147, 45, 255]
+    1: [220, 5, 12, 255]

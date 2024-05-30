@@ -158,7 +158,7 @@ def save(da, base, name=None):
     name: str, default=None
         Name to append for this file. If None, uses da.name instead
     """
-    out = Path(C.output.dir)
+    out = Path(C.output.dir) / base
     out.mkdir(parents=True, exist_ok=True)
 
     out /= f'{base}_{name or da.name}'
@@ -247,11 +247,16 @@ def main(ret='yield'):
     for key, opts in C.classify.items():
         Logger.info(f'Processing on key: {key}')
 
+        filter = None
         if opts.filter:
             Logger.info(f'Using filter: {opts.filter}')
-            opts.filter = condition(ds, opts.filter)
+            filter = condition(ds, opts.filter)
 
-        cs = classify(ds[key], hashmap=hashmap, **opts)
+        cs = classify(ds[key],
+            hashmap = hashmap,
+            filter  = filter,
+            default = opts.get('default', np.nan)
+        )
 
         if C.output.dir:
             if C.colors:
@@ -311,7 +316,14 @@ def cli(config, patch, print):
             if glob.has_magic(C.input.file):
                 files = glob.glob(C.input.file)
 
+                Logger.info(f'Glob pattern provided, retrieved {len(files)} files using: {C.input.file}')
+
                 for file in files:
+                    # Skip header files
+                    if file.endswith('.hdr'):
+                        continue
+
+                    Logger.info(f'Processing {file}')
                     C.input.file = file
                     for _ in main(ret): pass
 
