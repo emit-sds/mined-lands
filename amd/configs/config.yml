@@ -111,3 +111,10 @@ v1:
     5: [246, 193, 65, 255]
     4: [241, 147, 45, 255]
     1: [220, 5, 12, 255]
+
+v2:
+  classify:
+    group_1_mineral_id:
+      filter: group_1_band_depth > .01
+    group_2_mineral_id:
+      filter: group_2_band_depth > .01
