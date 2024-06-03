@@ -118,3 +118,5 @@ v2:
       filter: group_1_band_depth > .01
     group_2_mineral_id:
       filter: group_2_band_depth > .01
+  output:
+    dir: /scratch/amd/data/mosaics/output/v2
