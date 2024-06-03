@@ -80,9 +80,9 @@ g6:
     6: [67]
 
 cluster:
-  dir: /scratch/jamesmo/data/mosaics/glts_5_cloudy_20240120_global/l2b/
+  dir: /scratch/jamesmo/amd/data/mosaics/glts_5_cloudy_20240120_global/l2b/
   output:
-    dir: /scratch/jamesmo/data/mosaics/output/v1
+    dir: /scratch/jamesmo/amd/data/mosaics/output/v1
 
 mosaic:
   input:
