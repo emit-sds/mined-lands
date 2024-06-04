@@ -120,3 +120,12 @@ v2:
       filter: group_2_band_depth > .01
   output:
     dir: /scratch/jamesmo/amd/data/mosaics/output/v2
+
+v3:
+  classify:
+    group_1_mineral_id:
+      filter: group_1_band_depth > .05
+    group_2_mineral_id:
+      filter: group_2_band_depth > .05
+  output:
+    dir: /scratch/jamesmo/amd/data/mosaics/output/v3
