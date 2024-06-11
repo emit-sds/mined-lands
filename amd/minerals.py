@@ -224,7 +224,7 @@ def main(ret='yield'):
     """
     # Load the data
     file = Path(C.input.file)
-    if file.suffix == 'nc':
+    if file.suffix == '.nc':
         Logger.info(f'Loading using emit_xarray: {file}')
         ds = emit_xarray(file, ortho=True)
     else:
