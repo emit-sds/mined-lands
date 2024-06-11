@@ -199,12 +199,12 @@ def load_raster(file, rename={}, bands=[]):
 
     # Split the band dimension
     if bands:
-        ds['band'] = bands
+        ds['band'] = list(bands)
         ds = ds['band_data'].to_dataset('band')
 
     # Rename dimensions
     if rename:
-        ds = ds.rename(**C.input.rename)
+        ds = ds.rename(**rename)
 
     return ds
 
@@ -225,10 +225,10 @@ def main(ret='yield'):
     # Load the data
     file = Path(C.input.file)
     if file.suffix == 'nc':
-        Logger.info('Loading using emit_xarray')
+        Logger.info(f'Loading using emit_xarray: {file}')
         ds = emit_xarray(file, ortho=True)
     else:
-        Logger.info('Loading using load_raster')
+        Logger.info(f'Loading using load_raster: {file}')
         ds = load_raster(file, rename=C.input.rename, bands=C.input.bands.values())
 
     if C.subselect:
