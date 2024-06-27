@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 # External
+import earthaccess
 import requests
 
 from mlky import Config
@@ -58,16 +59,26 @@ def download(urls, output='./downloads', overwrite=False):
     overwrite: bool, default=False
         Overwrite existing files
     """
+    Logger.info('Logging into earthaccess')
+    earthaccess.login()
+    session = earthaccess.get_requests_https_session()
+
     output = Path(output)
+    output.mkdir(exist_ok=True, parents=True)
+    Logger.debug(f'Downloads output: {output}')
 
     for url in urls:
         name = url.split('/')[-1]
         file = output / name
 
         if overwrite or not file.exists():
-            resp = requests.get(url)
-            if resp:
-                with open(file, 'rb') as f:
-                    f.write(resp.content)
-            else:
-                Logger.error(f'Failed to retrieve file ({resp.status_code}: {resp.reason}): {url}')
+            Logger.debug(f'Retrieving {url} => {file}')
+            try:
+                with session.get(url, stream=True) as stream:
+                    with open(file, 'wb') as dst:
+                        for chunk in stream.iter_content(chunk_size=64*2**20):
+                            dst.write(chunk)
+            except Exception as e:
+                Logger.error(f'Failed to retrieve file: {url}\nReason: {e}')
+        else:
+            Logger.debug(f'File already exists, skipping: {file}')
