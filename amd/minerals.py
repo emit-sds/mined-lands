@@ -6,7 +6,6 @@ from datetime import datetime as dtt
 from pathlib  import Path
 
 # External
-import click
 import numpy  as np
 import xarray as xr
 
@@ -209,18 +208,15 @@ def load_raster(file, rename={}, bands=[]):
     return ds
 
 
-def main(ret='yield'):
+def process(ret='merge'):
     """
     Main processing function for classifying an EMIT scene into a mineral map
 
-    Yields
-    ------
-    ret: str, options=[], default='yield'
-        If 'yield', converts the function into a generator that will yield each classified
-        xr.DataArray
+    Returns
+    -------
+    ret: str, options=[], default='merge'
         If 'merge', merges the classified DataArrays back into a Dataset for return
         If anything else, simply deletes the DataArray from memory
-
     """
     # Load the data
     file = Path(C.input.file)
@@ -243,7 +239,7 @@ def main(ret='yield'):
         Logger.error('No hashmap defined, returning')
         return
 
-    hold = {'classify': [], 'colors': []}
+    merge = {'classify': [], 'colors': []}
     for key, opts in C.classify.items():
         Logger.info(f'Processing on key: {key}')
 
@@ -264,26 +260,24 @@ def main(ret='yield'):
                 ns = colorize(cs, C.colors)
 
                 save(ns, f'{file.stem}', name=f'{key}-color')
-                hold['colors'].append(ns)
+                merge['colors'].append(ns)
 
             save(cs, file.stem)
 
-        if ret == 'yield':
-            yield cs
-        elif ret == 'merge':
-            hold['classify'].append(cs)
+        if ret == 'merge':
+            merge['classify'].append(cs)
         else:
             del cs
 
-    if hold['classify']:
+    if merge['classify']:
         Logger.info('Merging arrays together')
 
-        ds = xr.merge(hold['classify'])
+        ds = xr.merge(merge['classify'])
         if C.output.dir:
             save(ds, file.stem, name='merged')
 
-        if hold['colors']:
-            ds = xr.merge(hold['colors'])
+        if merge['colors']:
+            ds = xr.merge(merge['colors'])
             try:
                 save(ds, file.stem, name='merged-color')
             except:
@@ -291,51 +285,37 @@ def main(ret='yield'):
                 pass
 
 
-@click.command()
-@click.option("-c", "--config", required=True, help="Configuration YAML")
-@click.option("-p", "--patch", help="Sections to patch with")
-@click.option("--print", help="Prints the configuration to terminal", is_flag=True)
-def cli(config, patch, print):
+def main():
     """\
     Executes the main processes
     """
-    # Initialize the global configuration object
-    C(config, patch)
+    start = dtt.now()
+    try:
+        if C.download:
+            Logger.info('Downloading files')
+            utils.download(**C.download)
 
-    utils.initLogging()
+        ret = 'merge' if C.output.merge else None
 
-    if print:
-        click.echo(C.dumpYaml(comments=None))
+        # If the file was a glob, process each input file separately
+        if glob.has_magic(C.input.file):
+            files = glob.glob(C.input.file)
 
-    if C.validate():
-        start = dtt.now()
-        try:
-            ret = 'merge' if C.output.merge else None
+            Logger.info(f'Glob pattern provided, retrieved {len(files)} files using: {C.input.file}')
 
-            # If the file was a glob, process each input file separately
-            if glob.has_magic(C.input.file):
-                files = glob.glob(C.input.file)
-
-                Logger.info(f'Glob pattern provided, retrieved {len(files)} files using: {C.input.file}')
-
-                for file in files:
-                    # Skip header files
-                    if file.endswith('.hdr'):
-                        continue
-
-                    Logger.info(f'Processing {file}')
-                    C.input.file = file
-                    for _ in main(ret): pass
-
-            else:
-                for _ in main(ret): pass
-        except:
-            Logger.exception(f'Caught a critical exception')
-        finally:
-            Logger.info(f'Finished in {dtt.now() - start}')
-    else:
-        click.echo("Please correct any configuration errors before proceeding")
+            jobs   = [process.remote(file) for file in files if not file.endswith('.hdr')]
+            report = Track(jobs, step=1, reverse=True, print=Logger.info, "Files processed")
+            while jobs:
+                [done], jobs = ray.wait(jobs, num_returns=1)
+                ray.get(done)
+                report(jobs)
+        else:
+            process(ret)
+    except:
+        Logger.exception(f'Caught a critical exception')
+    finally:
+        Logger.info(f'Finished in {dtt.now() - start}')
 
 
 if __name__ == '__main__':
-    cli()
+    Logger.error('Calling this script directly has been deprecated, please use the AMD CLI')
