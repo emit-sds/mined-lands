@@ -1,15 +1,71 @@
 # Builtins
 import logging
+import os
+import sys
 
 from pathlib import Path
 
 # External
 import earthaccess
 
-from mlky import Config
+from mlky import Config as C
 
 
 Logger = logging.getLogger('amd/utils')
+
+
+def initConfig(config, patch, defs, override, printconfig=False, printonly=False, print=print):
+    """
+    Initializes the mlky Config object
+
+    Parameters
+    ----------
+    mlky.cli options
+    """
+    C(config, _patch=patch, _defs=defs, _override=override)
+
+    # Print configuration to terminal
+    if printconfig or printonly:
+        print(f'Config({config!r}, _patch={patch!r}, _defs={defs})')
+        print('-'*100)
+        print(C.toYaml(comments=None, listStyle='short', header=False))
+        print('-'*100)
+
+        if printonly:
+            sys.exit()
+
+
+def initLogging(mode=None):
+    """
+    Initializes the logging module per the config
+    """
+    # Logging handlers
+    handlers = []
+
+    # Create console handler
+    sh = logging.StreamHandler(sys.stdout)
+
+    if (level := C.log.terminal):
+        sh.setLevel(level)
+
+    handlers.append(sh)
+
+    if (file := C.log.file):
+        if (mode or C.log.mode) == 'write' and os.path.exists(file):
+            os.remove(C.log.file)
+
+        # Add the file logging
+        fh = logging.FileHandler(file)
+        fh.setLevel(C.log.level or logging.DEBUG)
+
+        handlers.append(fh)
+
+    logging.basicConfig(
+        level    = C.log.get('level', 'DEBUG'),
+        format   = C.log.get('format', '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'),
+        datefmt  = C.log.get('format', '%m-%d %H:%M'),
+        handlers = handlers,
+    )
 
 
 def download(urls, output='./downloads', overwrite=False):

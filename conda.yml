@@ -22,3 +22,4 @@ dependencies:
   - spectral # emit_tools dependency
   - pip:
     - mlky
+    - ray

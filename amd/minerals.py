@@ -7,10 +7,12 @@ from pathlib  import Path
 
 # External
 import numpy  as np
+import ray
 import xarray as xr
 
 from emit_tools import emit_xarray
 from mlky       import Config as C
+from mlky.utils import Track
 
 # Internal
 from amd import utils
@@ -144,7 +146,7 @@ def condition(ds, string):
             return ds[key] <= float(val)
 
 
-def save(da, base, name=None):
+def save(C, da, base, name=None):
     """
     Saves a DataArray to netcdf and geotiff formats per the config
 
@@ -207,25 +209,27 @@ def load_raster(file, rename={}, bands=[]):
 
     return ds
 
-
-def process(ret='merge'):
+@ray.remote
+def process(file=None):
     """
     Main processing function for classifying an EMIT scene into a mineral map
 
     Returns
     -------
-    ret: str, options=[], default='merge'
-        If 'merge', merges the classified DataArrays back into a Dataset for return
-        If anything else, simply deletes the DataArray from memory
+    file : str, default=None
+        File to process. If None, refers to Config.input.file
     """
+    # Each ray process must reinitialize the logger
+    utils.initLogging(mode='append')
+
     # Load the data
-    file = Path(C.input.file)
+    file = Path(file or C.input.file)
     if file.suffix == '.nc':
         Logger.info(f'Loading using emit_xarray: {file}')
         ds = emit_xarray(file, ortho=True)
     else:
         Logger.info(f'Loading using load_raster: {file}')
-        ds = load_raster(file, rename=C.input.rename, bands=C.input.bands.values())
+        ds = load_raster(file, rename=C.input.rename, bands=C.input.bands)
 
     if C.subselect:
         ds = subselect(ds)
@@ -259,12 +263,12 @@ def process(ret='merge'):
                 Logger.info('Colorizing')
                 ns = colorize(cs, C.colors)
 
-                save(ns, f'{file.stem}', name=f'{key}-color')
+                save(C, ns, base=file.stem, name=f'{key}-color')
                 merge['colors'].append(ns)
 
-            save(cs, file.stem)
+            save(C, cs, base=file.stem)
 
-        if ret == 'merge':
+        if C.output.merge:
             merge['classify'].append(cs)
         else:
             del cs
@@ -274,12 +278,12 @@ def process(ret='merge'):
 
         ds = xr.merge(merge['classify'])
         if C.output.dir:
-            save(ds, file.stem, name='merged')
+            save(C, ds, base=file.stem, name='merged')
 
         if merge['colors']:
             ds = xr.merge(merge['colors'])
             try:
-                save(ds, file.stem, name='merged-color')
+                save(C, ds, base=file.stem, name='merged-color')
             except:
                 # tiff saving merged colors is not supported, exception expected
                 pass
@@ -291,11 +295,9 @@ def main():
     """
     start = dtt.now()
     try:
-        if C.download:
-            Logger.info('Downloading files')
+        if C.download.urls:
+            Logger.info(f'Downloading files')
             utils.download(**C.download)
-
-        ret = 'merge' if C.output.merge else None
 
         # If the file was a glob, process each input file separately
         if glob.has_magic(C.input.file):
@@ -304,13 +306,13 @@ def main():
             Logger.info(f'Glob pattern provided, retrieved {len(files)} files using: {C.input.file}')
 
             jobs   = [process.remote(file) for file in files if not file.endswith('.hdr')]
-            report = Track(jobs, step=1, reverse=True, print=Logger.info, "Files processed")
+            report = Track(jobs, step=1, reverse=True, print=Logger.info, message="Files processed")
             while jobs:
                 [done], jobs = ray.wait(jobs, num_returns=1)
                 ray.get(done)
                 report(jobs)
         else:
-            process(ret)
+            ray.get(process.remote())
     except:
         Logger.exception(f'Caught a critical exception')
     finally:

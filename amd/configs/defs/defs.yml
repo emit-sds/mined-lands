@@ -62,13 +62,18 @@
         dtype: str
 
   .file:
-    dtype: path
+    dtype: str
     sdesc: Input file to process. Can also be a glob string to retrieve multiple files
     required: True
 
 .output:
   dtype: dict
   sdesc: Processed output parameters
+
+  .dir:
+    dtype: path
+    sdesc: Output directory
+    default: ./amd-output
 
   .merge:
     dtype: bool
