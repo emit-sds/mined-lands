@@ -19,7 +19,7 @@ def initConfig(config, patch, defs, override, printconfig=False, printonly=False
     """
     Initializes the mlky Config object
     """
-    C(config, _patch=patch, _defs=defs, _override=override, _relativity=False)
+    C(config, _patch=patch, _defs=defs, _override=override)
 
     # Print configuration to terminal
     if printconfig or printonly:
