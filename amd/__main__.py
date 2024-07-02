@@ -24,7 +24,7 @@ def cli():
     ...
 
 
-# Path to the mlky definitions file for timefed
+# Path to the mlky definitions file
 defs = Path(__file__).parent / 'configs/defs/defs.yml'
 
 @cli.command(name='run', context_settings={'show_default': True})
