@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 import mlky
 
-from mlky import Config as C
+from mlky.ext.ray import Config as C
 
 # Internal
 from amd import utils
@@ -30,7 +30,7 @@ defs = Path(__file__).parent / 'configs/defs/defs.yml'
 @cli.command(name='run', context_settings={'show_default': True})
 @mlky.cli.config
 @mlky.cli.patch
-@mlky.cli.defs(default=defs)
+@mlky.cli.defs
 @mlky.cli.override
 @click.option('-dv', '--disableValidate', help='Disables the validation requirement. Validation will still be occur, but execution will not be prevented')
 @click.option("-pc", "--printConfig", help="Prints the configuration to terminal and continues", is_flag=True)

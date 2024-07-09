@@ -10,9 +10,9 @@ import numpy  as np
 import ray
 import xarray as xr
 
-from emit_tools import emit_xarray
-from mlky       import Config as C
-from mlky.utils import Track
+from emit_tools   import emit_xarray
+from mlky.ext.ray import Config as C
+from mlky.utils   import Track
 
 # Internal
 from amd import utils

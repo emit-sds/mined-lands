@@ -7,8 +7,9 @@ from pathlib import Path
 
 # External
 import earthaccess
+import ray
 
-from mlky import Config as C
+from mlky.ext.ray import Config as C
 
 
 Logger = logging.getLogger('amd/utils')
@@ -33,6 +34,9 @@ def initConfig(config, patch, defs, override, printconfig=False, printonly=False
 
         if printonly:
             sys.exit()
+
+    ray.init(**C.ray)
+    C.initRay()
 
 
 def initLogging(mode=None):
