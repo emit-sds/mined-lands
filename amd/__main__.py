@@ -41,10 +41,11 @@ def main(disablevalidate, **kwargs):
     Executes AMD scripts
     """
     utils.initConfig(**kwargs, print=click.echo)
-    utils.initLogging()
 
     if C.validateObj() or disablevalidate:
         from amd.minerals import main
+
+        utils.initLogging()
         main()
     else:
         Logger.error('Please correct the configuration errors before proceeding')
