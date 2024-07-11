@@ -27,14 +27,15 @@ def cli():
 # Path to the mlky definitions file
 defs = Path(__file__).parent / 'configs/defs/defs.yml'
 
+
 @cli.command(name='run', context_settings={'show_default': True})
 @mlky.cli.config
 @mlky.cli.patch
-@mlky.cli.defs
+@mlky.cli.defs(default=defs)
 @mlky.cli.override
-@click.option('-dv', '--disableValidate', help='Disables the validation requirement. Validation will still be occur, but execution will not be prevented')
-@click.option("-pc", "--printConfig", help="Prints the configuration to terminal and continues", is_flag=True)
-@click.option("-po", "--printOnly", help="Prints the configuration to terminal and exits", is_flag=True)
+@click.option('-dv', '--disableValidate', is_flag=True, help='Disables the validation requirement. Validation will still be occur, but execution will not be prevented')
+@click.option("-pc", "--printConfig", is_flag=True, help="Prints the configuration to terminal and continues")
+@click.option("-po", "--printOnly", is_flag=True, help="Prints the configuration to terminal and exits")
 def main(disablevalidate, **kwargs):
     """\
     Executes AMD scripts
