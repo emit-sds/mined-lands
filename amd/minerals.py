@@ -1,16 +1,18 @@
 # Builtins
+import glob
 import logging
 
 from datetime import datetime as dtt
 from pathlib  import Path
 
 # External
-import click
 import numpy  as np
+import ray
 import xarray as xr
 
-from emit_tools import emit_xarray
-from mlky       import Config as C
+from emit_tools   import emit_xarray
+from mlky.ext.ray import Config as C
+from mlky.utils   import Track
 
 # Internal
 from amd import utils
@@ -144,7 +146,7 @@ def condition(ds, string):
             return ds[key] <= float(val)
 
 
-def save(da, base, name=None):
+def save(C, da, base, name=None):
     """
     Saves a DataArray to netcdf and geotiff formats per the config
 
@@ -157,7 +159,7 @@ def save(da, base, name=None):
     name: str, default=None
         Name to append for this file. If None, uses da.name instead
     """
-    out = Path(C.output.dir)
+    out = Path(C.output.dir) / base
     out.mkdir(parents=True, exist_ok=True)
 
     out /= f'{base}_{name or da.name}'
@@ -198,37 +200,36 @@ def load_raster(file, rename={}, bands=[]):
 
     # Split the band dimension
     if bands:
-        ds['band'] = bands
+        ds['band'] = list(bands)
         ds = ds['band_data'].to_dataset('band')
 
     # Rename dimensions
     if rename:
-        ds = ds.rename(**C.input.rename)
+        ds = ds.rename(**rename)
 
     return ds
 
-
-def main(ret='yield'):
+@ray.remote
+def process(file=None):
     """
     Main processing function for classifying an EMIT scene into a mineral map
 
-    Yields
-    ------
-    ret: str, options=[], default='yield'
-        If 'yield', converts the function into a generator that will yield each classified
-        xr.DataArray
-        If 'merge', merges the classified DataArrays back into a Dataset for return
-        If anything else, simply deletes the DataArray from memory
-
+    Returns
+    -------
+    file : str, default=None
+        File to process. If None, refers to Config.input.file
     """
+    # Each ray process must reinitialize the logger
+    utils.initLogging(mode='append')
+
     # Load the data
-    file = Path(C.input.file)
-    if file.suffix == 'nc':
-        Logger.info('Loading using emit_xarray')
+    file = Path(file or C.input.file)
+    if file.suffix == '.nc':
+        Logger.info(f'Loading using emit_xarray: {file}')
         ds = emit_xarray(file, ortho=True)
     else:
-        Logger.info('Loading using load_raster')
-        ds = load_raster(file, rename=C.input.rename, bands=C.input.bands.values())
+        Logger.info(f'Loading using load_raster: {file}')
+        ds = load_raster(file, rename=C.input.rename, bands=C.input.bands)
 
     if C.subselect:
         ds = subselect(ds)
@@ -242,78 +243,81 @@ def main(ret='yield'):
         Logger.error('No hashmap defined, returning')
         return
 
-    hold = {'classify': [], 'colors': []}
+    merge = {'classify': [], 'colors': []}
     for key, opts in C.classify.items():
         Logger.info(f'Processing on key: {key}')
 
+        filter = None
         if opts.filter:
             Logger.info(f'Using filter: {opts.filter}')
-            opts.filter = condition(ds, opts.filter)
+            filter = condition(ds, opts.filter)
 
-        cs = classify(ds[key], hashmap=hashmap, **opts)
+        cs = classify(ds[key],
+            hashmap = hashmap,
+            filter  = filter,
+            default = opts.get('default', np.nan)
+        )
 
         if C.output.dir:
             if C.colors:
                 Logger.info('Colorizing')
                 ns = colorize(cs, C.colors)
 
-                save(ns, f'{file.stem}', name=f'{key}-color')
-                hold['colors'].append(ns)
+                save(C, ns, base=file.stem, name=f'{key}-color')
+                merge['colors'].append(ns)
 
-            save(cs, file.stem)
+            save(C, cs, base=file.stem)
 
-        if ret == 'yield':
-            yield cs
-        elif ret == 'merge':
-            hold['classify'].append(cs)
+        if C.output.merge:
+            merge['classify'].append(cs)
         else:
             del cs
 
-    if hold['classify']:
+    if merge['classify']:
         Logger.info('Merging arrays together')
 
-        ds = xr.merge(hold['classify'])
+        ds = xr.merge(merge['classify'])
         if C.output.dir:
-            save(ds, file.stem, name='merged')
+            save(C, ds, base=file.stem, name='merged')
 
-        if hold['colors']:
-            ds = xr.merge(hold['colors'])
+        if merge['colors']:
+            ds = xr.merge(merge['colors'])
             try:
-                save(ds, file.stem, name='merged-color')
+                save(C, ds, base=file.stem, name='merged-color')
             except:
                 # tiff saving merged colors is not supported, exception expected
                 pass
 
 
-@click.command()
-@click.option("-c", "--config", required=True, help="Configuration YAML")
-@click.option("-p", "--patch", help="Sections to patch with")
-@click.option("--print", help="Prints the configuration to terminal", is_flag=True)
-def cli(config, patch, print):
+def main():
     """\
     Executes the main processes
     """
-    # Initialize the global configuration object
-    C(config, patch)
+    start = dtt.now()
+    try:
+        if C.download.urls:
+            Logger.info(f'Downloading files')
+            utils.download(**C.download)
 
-    utils.initLogging()
+        # If the file was a glob, process each input file separately
+        if glob.has_magic(C.input.file):
+            files = glob.glob(C.input.file)
 
-    if print:
-        click.echo(C.dumpYaml(comments=None))
+            Logger.info(f'Glob pattern provided, retrieved {len(files)} files using: {C.input.file}')
 
-    if C.validate():
-        start = dtt.now()
-        try:
-            ret = 'merge' if C.output.merge else None
-            for _ in main(ret):
-                pass
-        except:
-            Logger.exception(f'Caught a critical exception')
-        finally:
-            Logger.info(f'Finished in {dtt.now() - start}')
-    else:
-        click.echo("Please correct any configuration errors before proceeding")
+            jobs   = [process.remote(file) for file in files if not file.endswith('.hdr')]
+            report = Track(jobs, step=1, reverse=True, print=Logger.info, message="Files processed")
+            while jobs:
+                [done], jobs = ray.wait(jobs, num_returns=1)
+                ray.get(done)
+                report(jobs)
+        else:
+            ray.get(process.remote())
+    except:
+        Logger.exception(f'Caught a critical exception')
+    finally:
+        Logger.info(f'Finished in {dtt.now() - start}')
 
 
 if __name__ == '__main__':
-    cli()
+    Logger.error('Calling this script directly has been deprecated, please use the AMD CLI')

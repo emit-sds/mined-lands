@@ -1,0 +1,173 @@
+.log:
+  dtype: dict
+  sdesc: Controls the logger
+
+  .file:
+    dtype: str
+    sdesc: File to write log outputs to. Set to False/null to not write to file
+    default: amd.log
+
+  .mode:
+    dtype: str
+    sdesc: "File write mode, ie: `write` = overwite the file, `append` = append to existing"
+    default: write
+    checks:
+      - oneof:
+        - write
+        - append
+
+  .level:
+    dtype: str
+    sdesc: Logger level. This is the level that will write to file if enabled
+    default: DEBUG
+    checks:
+      - oneof:
+        - DEBUG
+        - INFO
+        - WARNING
+        - ERROR
+        - EXCEPTION
+
+  .terminal:
+    dtype: str
+    sdesc: The terminal level to log, ie. logger level to write to terminal. This can be different than the file level
+    default: ${.level}
+    checks:
+      - oneof:
+        - DEBUG
+        - INFO
+        - WARNING
+        - ERROR
+        - EXCEPTION
+
+.input:
+  dtype: dict
+  sdesc: Input file parameters
+
+  .bands:
+    dtype: dict
+    sdesc: Convert the band dimension into these names
+    match:
+      - case: dict
+        key: '*'
+        dtype: str
+        sdesc: Band name
+
+  .rename:
+    dtype: dict
+    sdesc: Rename dimensions or variables
+    match:
+      - case: dict
+        key: '*'
+        dtype: str
+
+  .file:
+    dtype: str
+    sdesc: Input file to process. Can also be a glob string to retrieve multiple files
+    required: True
+
+.output:
+  dtype: dict
+  sdesc: Processed output parameters
+
+  .dir:
+    dtype: path
+    sdesc: Output directory
+    default: ./amd-output
+
+  .merge:
+    dtype: bool
+    sdesc: Merge classifications together into one file
+    default: false
+
+  .geotiff:
+    dtype: dict
+    sdesc: Output as TIFF
+
+    .crs:
+      dtype: str
+      sdesc: CRS to set
+      default: epsg:4326
+
+  .netcdf:
+    dtype: bool
+    sdesc: Output as NetCDF4
+    default: false
+
+.download:
+  dtype: dict
+  sdesc: Download data from earthaccess
+
+  .output:
+    dtype: path
+    sdesc: Path to download to
+    default: ./downloads
+
+  .urls:
+    dtype: list
+    sdesc: URLs to download
+
+.subselect:
+  dtype: dict
+  sdesc: Subselect input data along dimensions before processing
+
+.hashmap:
+  dtype: dict
+  sdesc: Mapping minerals to an ID
+  match:
+    - case: list
+      key: '*'
+      match:
+        - case: int
+          key: '*'
+          dtype: float
+
+.colors:
+  dtype: dict
+  sdesc: Map mineral IDs to an RGBA color
+  match:
+    - case: list
+      key: '*'
+      sdesc: ID to RGBA
+      match:
+        - case: int
+          key: '*'
+          dtype: float
+          checks:
+            - between:
+                lower: 0
+                upper: 255
+                inclusive: True
+        - case: int
+          key: _key
+          value: 0
+          sdesc: Red channel
+        - case: int
+          key: _key
+          value: 1
+          sdesc: Green channel
+        - case: int
+          key: _key
+          value: 2
+          sdesc: Blue channel
+        - case: int
+          key: _key
+          value: 3
+          sdesc: Alpha channel
+
+.classify:
+  dtype: dict
+  sdesc: Classify these variables
+  match:
+    - case: dict
+      key: '*'
+      sdesc: Variable to classify
+
+      .filter:
+        dtype: str
+        sdesc: Apply filter
+
+      .default:
+        dtype: float
+        sdesc: Default fill value
+        default: .nan

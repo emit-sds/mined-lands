@@ -1,80 +1,124 @@
+# Requires mlky >= v4.1.0
+# Must only define the system and the version, plus any additional utilities
+# Examples:
+# -p "local<-v2"
+# -p "cluster<-v3<-quiet"
+# -p "cluster<-v3<-loc1"
+
 default:
-  dir: \
   input:
     bands:
-      1: group_1_band_depth
-      2: group_1_mineral_id
-      3: group_2_band_depth
-      4: group_2_mineral_id
+      - group_1_band_depth
+      - group_1_mineral_id
+      - group_2_band_depth
+      - group_2_mineral_id
     rename:
       y: latitude
       x: longitude
-    file: ${.dir}/EMIT_L2B_MIN_001_20231015T215344_2328814_020.nc
-  classify:
-    group_1_mineral_id:
-      filter: group_1_band_depth > .001
-      default: .nan
-    group_2_mineral_id:
-      filter: group_2_band_depth > .001
-      default: .nan
+    file: \
   output:
     merge: true
     geotiff:
       crs: epsg:4326
     netcdf: true
 
-full:
-  hashmap: # Minerals mapping
-    1: [10]
-    2: [9, 15, 49, 204, 205, 206]
-    3: [3, 5, 6, 7, 8, 9, 18]
-    4: [30, 31, 32, 33, 45, 47]
-    5: [11]
-    6: [67]
-  colors:
-    #  [R, G, B, A]
-    1: [255, 1, 1, 255]
-    2: [1, 255, 1, 255]
-    3: [1, 1, 255, 255]
-    4: [255, 255, 1, 255]
-    5: [1, 255, 255, 255]
-    6: [255, 1, 255, 255]
+# Systems
 
 local:
-  dir: /path/to/your/input/data
+  mlky.patch: default
+  input:
+    file: /path/to/your/input.file
   output:
     dir: ./output
+
+cluster:
+  mlky.patch: default
+  version: no-version
+  input:
+    file: /scratch/jamesmo/amd/data/mosaics/glts_5_cloudy_20240120_global/l2b/*
+  output:
+    dir: /scratch/jamesmo/amd/data/mosaics/output/${version}
+    merge: false
+    netcdf: false
+
+# Downloads
+
+example:
+  download:
+    output: ./downloads
+    urls:
+      - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20220903T163129_2224611_012/EMIT_L2A_RFL_001_20220903T163129_2224611_012.nc
+
+# Locations
+
+loc1: # ALUM GULCH, LEAD QUEEN
+  subselect:
+    latitude: [31.45, 31.55]
+    longitude: [-110.8, -110.7]
+
+# Utilities
 
 quiet:
   log:
     terminal: INFO
 
-# ALUM GULCH, LEAD QUEEN
-loc1:
-  subselect:
-    latitude: [31.45, 31.55]
-    longitude: [-110.8, -110.7]
+# Versions
 
-g1:
-  hashmap:
+v1:
+  version: v1
+  hashmap: # Minerals mapping
+    # pyrite
     1: [10]
-
-g2:
-  hashmap:
-    2: [9, 15, 49, 204, 205, 206]
-
-g3:
-  hashmap:
-    3: [3, 5, 6, 7, 8, 9, 18]
-
-g4:
-  hashmap:
-    4: [30, 31, 32, 33, 45, 47]
-
-g5:
-  hashmap:
+    # goethite
+    2: [3, 5, 6, 7, 8, 9, 18]
+    # hematite
+    3: [30, 31, 32, 33, 45, 47]
+    # jarosite
+    4: [9, 15, 49, 204, 205, 206]
+    # schwertmannite
     5: [11]
-
-g6:
-  hashmap:
+    # copiapite
     6: [67]
+    # Ca,Mg-carbonates
+    7: [126, 184, 211, 212, 213, 214, 215, 216, 217, 218, 219, 225, 226, 227, 229, 230, 231, 232]
+    # other carboantes
+    8: [58, 63, 64, 220, 240, 241, 267, 270, 271]
+    # Ca,Mg,Al (hydr)oxides
+    9: [93, 153, 154, 155, 156, 237, 287]
+    # soluble silicates (+ phosphates)
+    10: [17, 27, 38, 125, 127, 128, 129, 130, 131, 132, 177, 178, 189, 190, 202]
+  colors:
+    #      R,   G,   B,   A
+    1:  [220,   5,  12, 255]
+    2:  [174, 118, 163, 255]
+    3:  [209, 187, 215, 255]
+    4:  [241, 147,  45, 255]
+    5:  [246, 193,  65, 255]
+    6:  [247, 240,  87, 255]
+    7:  [123, 175, 222, 255]
+    8:  [ 82, 137, 199, 255]
+    9:  [ 25, 101, 176, 255]
+    10: [136,  46, 114, 255]
+  classify:
+    group_1_mineral_id:
+      filter: group_1_band_depth > .001
+    group_2_mineral_id:
+      filter: group_2_band_depth > .001
+
+v2:
+  mlky.patch: v1
+  version: v2
+  classify:
+    group_1_mineral_id:
+      filter: group_1_band_depth > .01
+    group_2_mineral_id:
+      filter: group_2_band_depth > .01
+
+v3:
+  mlky.patch: v1
+  version: v3
+  classify:
+    group_1_mineral_id:
+      filter: group_1_band_depth > .05
+    group_2_mineral_id:
+      filter: group_2_band_depth > .05
