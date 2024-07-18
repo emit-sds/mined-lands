@@ -31,3 +31,6 @@ python minerals.py -c configs/config.yml -p "default<-local<-full"
 Farrand, W. H., & Bhattacharya, S. (2021). Tracking acid generating minerals and trace metal spread from mines using hyperspectral data: case studies from Northwest India. International Journal of Remote Sensing, 42(8), 2920-2939.
 
 Swayze, G. A., Smith, K. S., Clark, R. N., Sutley, S. J., Pearson, R. M., Vance, J. S., ... & Roth, S. (2000). Using imaging spectroscopy to map acidic mine waste. Environmental Science & Technology, 34(1), 47-54.
+
+# Acknowledgements
+This work has been supported by funding from the Earth System Science Pathfinder Program Office (ESSP PO). 
