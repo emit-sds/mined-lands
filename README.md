@@ -1,6 +1,6 @@
 <h1 align="center"> mined-lands </h1>
 
-EMIT Applications Support for Acid Mine Drainage Assessment
+< h2 align="center"> EMIT Applications Support for Acid Mine Drainage Assessment </h2>
 
 # Description
 
