@@ -3,7 +3,7 @@
   sdesc: Controls the logger
 
   .file:
-    dtype: str
+    dtype: path
     sdesc: File to write log outputs to. Set to False/null to not write to file
     default: amd.log
 
@@ -44,22 +44,39 @@
   dtype: dict
   sdesc: Input file parameters
 
-  .bands:
+  .raster:
     dtype: dict
-    sdesc: Convert the band dimension into these names
-    match:
-      - case: dict
-        key: '*'
-        dtype: str
-        sdesc: Band name
+    sdesc: Parameters to control the loading of raster files
 
-  .rename:
+    .bands:
+      dtype: dict
+      sdesc: Convert the band dimension into these names
+      match:
+        - case: dict
+          key: '*'
+          dtype: str
+          sdesc: Band name
+
+    .rename:
+      dtype: dict
+      sdesc: Rename dimensions or variables
+      match:
+        - case: dict
+          key: '*'
+          dtype: str
+
+  .netcdf:
     dtype: dict
-    sdesc: Rename dimensions or variables
-    match:
-      - case: dict
-        key: '*'
-        dtype: str
+    sdesc: Parameters to control the loading of netcdf files
+
+    .merge:
+      dtype: list
+      sdesc: "Additional EMIT products to load for each granule, for example: EMIT_L2B_MINUNCERT"
+      match:
+        - case: str
+          key: '*'
+          sdesc: EMIT product
+          dtype: str
 
   .file:
     dtype: str
@@ -164,8 +181,13 @@
       sdesc: Variable to classify
 
       .filter:
-        dtype: str
-        sdesc: Apply filter
+        dtype: list
+        sdesc: Filters to apply
+        match:
+          - case: str
+            key: '*'
+            sdesc: Variable to filter with
+            dtype: str
 
       .default:
         dtype: float

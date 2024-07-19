@@ -7,15 +7,16 @@
 
 default:
   input:
-    bands:
-      - group_1_band_depth
-      - group_1_mineral_id
-      - group_2_band_depth
-      - group_2_mineral_id
-    rename:
-      y: latitude
-      x: longitude
     file: \
+    raster:
+      bands:
+        - group_1_band_depth
+        - group_1_mineral_id
+        - group_2_band_depth
+        - group_2_mineral_id
+      rename:
+        y: latitude
+        x: longitude
   output:
     merge: true
     geotiff:
@@ -101,24 +102,64 @@ v1:
     10: [136,  46, 114, 255]
   classify:
     group_1_mineral_id:
-      filter: group_1_band_depth > .001
+      filter:
+        - group_1_band_depth > .001
     group_2_mineral_id:
-      filter: group_2_band_depth > .001
+      filter:
+        - group_2_band_depth > .001
 
 v2:
   mlky.patch: v1
   version: v2
   classify:
     group_1_mineral_id:
-      filter: group_1_band_depth > .01
+      filter:
+        - group_1_band_depth > .01
     group_2_mineral_id:
-      filter: group_2_band_depth > .01
+      filter:
+        - group_2_band_depth > .01
 
 v3:
   mlky.patch: v1
   version: v3
   classify:
     group_1_mineral_id:
-      filter: group_1_band_depth > .05
+      filter:
+        - group_1_band_depth > .05
     group_2_mineral_id:
-      filter: group_2_band_depth > .05
+      filter:
+        - group_2_band_depth > .05
+
+v3-uncert:
+  mlky.patch: v3
+  version: v3.1
+  input:
+    netcdf:
+      merge:
+        - EMIT_L2B_MINUNCERT
+  classify:
+    group_1_mineral_id:
+      filter:
+        - group_1_band_depth > .05
+        - group_1_fit > .4
+
+    group_2_mineral_id:
+      filter:
+        - group_2_band_depth > .05
+        - group_2_fit > .4
+
+v4:
+  mlky.patch: v1
+  version: v4
+  hashmap: # Minerals mapping
+    # pyrite
+    1: [10]
+    # jarosite, schwertmannite, copiapite
+    2: [9, 15, 49, 204, 205, 206, 11, 67]
+    # Ca,Mg-carbonates
+    3: [126, 184, 211, 212, 213, 214, 215, 216, 217, 218, 219, 225, 226, 227, 229, 230, 231, 232]
+  colors:
+    #     R,   G,   B,   A
+    1: [220,   5,  12, 255]
+    2: [247, 240,  87, 255]
+    3: [ 25, 101, 176, 255]

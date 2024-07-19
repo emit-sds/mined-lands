@@ -1,6 +1,7 @@
 # Builtins
 import logging
 import os
+import re
 import sys
 
 from pathlib import Path
@@ -9,6 +10,9 @@ from pathlib import Path
 import earthaccess
 import ray
 
+import xarray as xr
+
+from emit_tools   import emit_xarray
 from mlky.ext.ray import Config as C
 
 
@@ -55,8 +59,12 @@ def initLogging(mode=None):
     handlers.append(sh)
 
     if (file := C.log.file):
-        if (mode or C.log.mode) == 'write' and os.path.exists(file):
+        file = Path(file)
+
+        if (mode or C.log.mode) == 'write' and file.exists():
             os.remove(C.log.file)
+
+        file.parent.mkdir(parents=True, exist_ok=True)
 
         # Add the file logging
         fh = logging.FileHandler(file)
@@ -108,3 +116,95 @@ def download(urls, output='./downloads', overwrite=False):
                 Logger.error(f'Failed to retrieve file: {url}\nReason: {e}')
         else:
             Logger.debug(f'File already exists, skipping: {file}')
+
+
+def load_raster(file, rename={}, bands=[]):
+    """
+    Loads an EMIT raster file. Auto splits the 'band' dimension into individual
+    variables and renames the coordinates, if provided
+
+    Parameters
+    ----------
+    file: str
+        Path to an EMIT rasterized file to load
+    rename: dict
+        Rename keys before returning
+    bands: list
+        Exchange the 'band' dim values
+
+    Returns
+    -------
+    ds: xr.Dataset
+        Loaded xarray object
+    """
+    ds = xr.load_dataset(file, engine='rasterio')
+
+    # Split the band dimension
+    if bands:
+        ds['band'] = list(bands)
+        ds = ds['band_data'].to_dataset('band')
+
+    # Rename dimensions
+    if rename:
+        ds = ds.rename(**rename)
+
+    return ds
+
+
+def load_netcdf(file):
+    """
+    Loads a netcdf file using emit_tools.emit_xarray
+
+    Parameters
+    ----------
+    file: pathlib.Path
+        Path to file to load
+
+    Returns
+    -------
+    ds: xr.Dataset
+        Loaded xarray object
+    """
+    Logger.info(f'Loading using emit_xarray: {file}')
+    ds = emit_xarray(file, ortho=True)
+
+    return ds
+
+
+def load(file):
+    """
+    Switches the loading function depending on the input file
+
+    Parameters
+    ----------
+    file: pathlib.Path
+        Path to file to load
+
+    Returns
+    -------
+    ds: xr.Dataset
+        Loaded xarray object
+    """
+    if file.suffix == '.nc':
+        ds = load_netcdf(file)
+
+        split = re.findall(r'(EMIT_L\d[AB]_[A-Z]+)_(\w+)', file.name)
+        if split:
+            product, granule = split[0]
+
+            for product in C.input.netcdf.merge:
+                product = file.with_stem(f'{product}_{granule}')
+                if product.exists():
+                    ps = load_netcdf(product)
+                else:
+                    Logger.error(f'Could not find product: {product}')
+
+                Logger.debug(f'Merging product: {product}')
+                ds = xr.merge([ds, ps])
+        elif C.input.netcdf.merge:
+            Logger.error('Failed to parse EMIT product from input file, cannot load additional products for merging')
+    else:
+        Logger.info(f'Loading using load_raster: {file}')
+        ds = load_raster(file, **C.input.raster)
+
+    return ds

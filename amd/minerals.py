@@ -10,7 +10,6 @@ import numpy  as np
 import ray
 import xarray as xr
 
-from emit_tools   import emit_xarray
 from mlky.ext.ray import Config as C
 from mlky.utils   import Track
 
@@ -177,38 +176,6 @@ def save(C, da, base, name=None):
         Logger.info(f'Wrote geotiff to: {out}.tiff')
 
 
-def load_raster(file, rename={}, bands=[]):
-    """
-    Loads an EMIT raster file. Auto splits the 'band' dimension into individual
-    variables and renames the coordinates, if provided
-
-    Parameters
-    ----------
-    file: str
-        Path to an EMIT rasterized file to load
-    rename: dict
-        Rename keys before returning
-    bands: list
-        Exchange the 'band' dim values
-
-    Returns
-    -------
-    ds: xr.Dataset
-        Loaded xarray object
-    """
-    ds = xr.load_dataset(file, engine='rasterio')
-
-    # Split the band dimension
-    if bands:
-        ds['band'] = list(bands)
-        ds = ds['band_data'].to_dataset('band')
-
-    # Rename dimensions
-    if rename:
-        ds = ds.rename(**rename)
-
-    return ds
-
 @ray.remote
 def process(file=None):
     """
@@ -224,12 +191,7 @@ def process(file=None):
 
     # Load the data
     file = Path(file or C.input.file)
-    if file.suffix == '.nc':
-        Logger.info(f'Loading using emit_xarray: {file}')
-        ds = emit_xarray(file, ortho=True)
-    else:
-        Logger.info(f'Loading using load_raster: {file}')
-        ds = load_raster(file, rename=C.input.rename, bands=C.input.bands)
+    ds   = utils.load(file)
 
     if C.subselect:
         ds = subselect(ds)
@@ -248,9 +210,14 @@ def process(file=None):
         Logger.info(f'Processing on key: {key}')
 
         filter = None
-        if opts.filter:
-            Logger.info(f'Using filter: {opts.filter}')
-            filter = condition(ds, opts.filter)
+        for filt in opts.filter:
+            Logger.info(f'Using filter: {filt}')
+            filt = condition(ds, filt)
+
+            if filter is not None:
+                filter &= filt
+            else:
+                filter = filt
 
         cs = classify(ds[key],
             hashmap = hashmap,

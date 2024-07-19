@@ -42,6 +42,7 @@ def main(disablevalidate, **kwargs):
     """
     utils.initConfig(**kwargs, print=click.echo)
 
+    C.abc()
     if C.validateObj() or disablevalidate:
         from amd.minerals import main
 
