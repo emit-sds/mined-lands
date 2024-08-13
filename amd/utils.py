@@ -19,7 +19,7 @@ from mlky.ext.ray import Config as C
 Logger = logging.getLogger('amd/utils')
 
 
-def initConfig(config, patch, defs, override, printconfig=False, printonly=False, print=print):
+def initConfig(config, patch, defs, override, printconfig=False, printonly=False, print=print, initray=True):
     """
     Initializes the mlky Config object
 
@@ -39,8 +39,9 @@ def initConfig(config, patch, defs, override, printconfig=False, printonly=False
         if printonly:
             sys.exit()
 
-    ray.init(**C.ray)
-    C.initRay()
+    if initray:
+        ray.init(**C.ray)
+        C.initRay()
 
 
 def initLogging(mode=None):
@@ -80,42 +81,94 @@ def initLogging(mode=None):
     )
 
 
-def download(urls, output='./downloads', overwrite=False):
+def getEarthAccessSession():
+    """
+    """
+    try:
+        Logger.info('Logging into earthaccess')
+        earthaccess.login()
+        return earthaccess.get_requests_https_session()
+    except:
+        Logger.exception('Failed to start a session with earthaccess')
+
+    return False
+
+
+def download(url, session=None, output='./downloads', overwrite=False, chunk_size=64*2**20):
     """
     Downloads files from a URL
 
     Parameters
     ----------
-    urls: list
-        URLs to download
+    url: str
+        URL to download
     output: str, default='./downloads'
         Output directory
     overwrite: bool, default=False
         Overwrite existing files
     """
-    Logger.info('Logging into earthaccess')
-    earthaccess.login()
-    session = earthaccess.get_requests_https_session()
+    gb = 2**30
+
+    if session is None:
+        if (session := getEarthAccessSession()) is False:
+            return
 
     output = Path(output)
     output.mkdir(exist_ok=True, parents=True)
     Logger.debug(f'Downloads output: {output}')
 
-    for url in urls:
-        name = url.split('/')[-1]
-        file = output / name
+    name = url.split('/')[-1]
+    file = output / name
 
-        if overwrite or not file.exists():
-            Logger.debug(f'Retrieving {url} => {file}')
-            try:
-                with session.get(url, stream=True) as stream:
+    if overwrite or not file.exists():
+        Logger.debug(f'Retrieving {url} => {file}')
+        try:
+            with session.get(url, stream=True) as stream:
+                if stream.status_code >= 400:
+                    Logger.error(f'Failed to retrieve file (status code {stream.status_code}): {url}')
+                else:
                     with open(file, 'wb') as dst:
-                        for chunk in stream.iter_content(chunk_size=64*2**20):
+                        for i, chunk in enumerate(stream.iter_content(chunk_size=chunk_size)):
                             dst.write(chunk)
-            except Exception as e:
-                Logger.error(f'Failed to retrieve file: {url}\nReason: {e}')
-        else:
-            Logger.debug(f'File already exists, skipping: {file}')
+                            Logger.debug(f'Downloaded {file.stat().st_size / gb:.2f} GB')
+
+        except Exception as e:
+            Logger.error(f'Failed to retrieve file: {url}\nReason: {e}')
+    else:
+        Logger.debug(f'File already exists, skipping: {file}')
+
+    return True
+
+
+def batchDownload(urls=[], batch=None, **kwargs):
+    """
+    Performs batch downloading of files per a configuration
+    """
+    if (session := getEarthAccessSession()) is False:
+        return
+
+    if batch:
+        Logger.debug(f'Batch download: {batch}')
+        for granule in batch.granules:
+            for kind, products in batch.products.items():
+                base = batch.base[kind]
+                urls += [
+                    base.format(
+                        granule = granule,
+                        product = product,
+                        type    = kind
+                    )
+                    for product in products
+                ]
+
+    if C.isinstance(urls, list) and urls:
+        Logger.debug(f'List download:')
+        for url in urls:
+            Logger.debug(f'- {url}')
+        for url in urls:
+            if not download(url, session, **kwargs):
+                Logger.error('Failed to download, exiting early')
+                return
 
 
 def load_raster(file, rename={}, bands=[]):
@@ -185,7 +238,7 @@ def load(file):
     ds: xr.Dataset
         Loaded xarray object
     """
-    if file.suffix == '.nc':
+    if (file := Path(file)).suffix == '.nc':
         ds = load_netcdf(file)
 
         split = re.findall(r'(EMIT_L\d[AB]_[A-Z]+)_(\w+)', file.name)

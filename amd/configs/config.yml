@@ -44,11 +44,31 @@ cluster:
 
 # Downloads
 
-example:
+dl-example-urls:
   download:
     output: ./downloads
     urls:
       - https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_001_20220903T163129_2224611_012/EMIT_L2A_RFL_001_20220903T163129_2224611_012.nc
+
+dl-example-batch:
+  download:
+    output: ./downloads
+    batch:
+      base:
+        L2A: https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2ARFL.001/EMIT_L2A_RFL_{granule}/EMIT_L2A_{product}_{granule}.nc
+        L2B: https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BMIN.001/EMIT_L2B_MIN_{granule}/EMIT_L2B_{product}_{granule}.nc
+      granules:
+        - 001_20230203T184949_2303413_009
+        - 001_20220903T163129_2224611_012
+        - 001_20231015T215344_2328814_020
+      products:
+        L2A:
+          - MASK
+          - RFL
+        L2B:
+          - MIN
+          - MINUNCERT
+
 
 # Locations
 
@@ -147,6 +167,27 @@ v3-uncert:
       filter:
         - group_2_band_depth > .05
         - group_2_fit > .4
+
+v3-cloud:
+  mlky.patch: v3
+  version: v3.2
+  input:
+    netcdf:
+      merge:
+        - EMIT_L2B_MINUNCERT
+        - EMIT_L2A_MASK
+  classify:
+    group_1_mineral_id:
+      filter:
+        - group_1_band_depth > .05
+        - group_1_fit > .4
+        - mask: [0, 1, 3]
+
+    group_2_mineral_id:
+      filter:
+        - group_2_band_depth > .05
+        - group_2_fit > .4
+        - mask: [0, 1, 3]
 
 v4:
   mlky.patch: v1

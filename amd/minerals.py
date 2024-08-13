@@ -113,9 +113,11 @@ def subselect(ds):
     return ds.sel(**sel)
 
 
-def condition(ds, string):
+def condition(ds, cond):
     """
-    Converts a string from the config to a condition. Must be formatted as:
+    Converts a condition from the config to a mask.
+
+    Strings must be formatted as:
         "key op value"
     Where:
         key   = key in the Dataset to operate on
@@ -126,23 +128,26 @@ def condition(ds, string):
     ----------
     ds: xr.Dataset
         Dataset object to apply a condition function on
-    string: str
-        Conditional string
+    cond: str
+        Conditional
 
     Returns
     -------
     xr.DataArray
         Boolean DataArray object
     """
-    match string.split(' '):
-        case key, '>', val:
-            return ds[key] > float(val)
-        case key, '<', val:
-            return ds[key] < float(val)
-        case key, '>=', val:
-            return ds[key] >= float(val)
-        case key, '<=', val:
-            return ds[key] <= float(val)
+    if isinstance(cond, str):
+        match cond.split(' '):
+            case key, '>', val:
+                return ds[key] > float(val)
+            case key, '<', val:
+                return ds[key] < float(val)
+            case key, '>=', val:
+                return ds[key] >= float(val)
+            case key, '<=', val:
+                return ds[key] <= float(val)
+    elif cond.mask:
+        return ~ds['mask'].isel(mask_bands=cond.mask).sum('mask_bands').astype(bool)
 
 
 def save(C, da, base, name=None):
