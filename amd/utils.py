@@ -113,8 +113,7 @@ def download(url, session=None, output='./downloads', overwrite=False, chunk_siz
         if (session := getEarthAccessSession()) is False:
             return
 
-    output = Path(output)
-    output.mkdir(exist_ok=True, parents=True)
+    (output := Path(output)).mkdir(exist_ok=True, parents=True)
     Logger.debug(f'Downloads output: {output}')
 
     name = url.split('/')[-1]
@@ -137,7 +136,7 @@ def download(url, session=None, output='./downloads', overwrite=False, chunk_siz
     else:
         Logger.debug(f'File already exists, skipping: {file}')
 
-    return True
+    return file
 
 
 def batchDownload(urls=[], batch=None, **kwargs):

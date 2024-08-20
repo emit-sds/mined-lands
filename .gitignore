@@ -5,6 +5,7 @@ __pycache__
 
 # Dev files
 .local/
+.ipynb_checkpoints/
 
 # builds
 build/
