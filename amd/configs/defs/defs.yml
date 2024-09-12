@@ -40,57 +40,67 @@
         - ERROR
         - EXCEPTION
 
+
 .input:
   dtype: dict
   sdesc: Input file parameters
 
-  .raster:
+  .granules:
     dtype: dict
-    sdesc: Parameters to control the loading of raster files
+    sdesc: Input EMIT granule files
 
-    .bands:
-      dtype: dict
-      sdesc: Convert the band dimension into these names
-      match:
-        - case: dict
-          key: '*'
-          dtype: str
-          sdesc: Band name
+    .dir:
+      dtype: path
+      sdesc: Directory to find granule data and/or to download to
+      default: .
 
-    .rename:
-      dtype: dict
-      sdesc: Rename dimensions or variables
-      match:
-        - case: dict
-          key: '*'
-          dtype: str
+    .subdir:
+      dtype: bool
+      sdesc: Set granule data to be a subdirectory of [dir], eg. [dir]/[granule]/products.nc
+      default: False
 
-  .netcdf:
-    dtype: dict
-    sdesc: Parameters to control the loading of netcdf files
-
-    .merge:
+    .products:
       dtype: list
-      sdesc: "Additional EMIT products to load for each granule, for example: EMIT_L2B_MINUNCERT"
-      match:
-        - case: str
-          key: '*'
-          sdesc: EMIT product
-          dtype: str
+      sdesc: Granule IDs to process
+      default: []
 
-  .file:
-    dtype: str
-    sdesc: Input file to process. Can also be a glob string to retrieve multiple files
-    required: True
+  .rasters:
+    dtype: dict
+    sdesc: Input EMIT raster files
+
+    .dir:
+      dtype: path
+      sdesc: Directory to find raster data
+      default: .
+
+    .products:
+      dtype: list
+      sdesc: Raster IDs to process (either the raster or the header file name)
+      default: []
 
 .output:
   dtype: dict
   sdesc: Processed output parameters
 
+  .save:
+    dtype: bool
+    sdesc: Enables/disables saving output AMD products
+    default: True
+
   .dir:
     dtype: path
-    sdesc: Output directory
-    default: ./amd-output
+    sdesc: Path to output to
+    default: output/
+
+  .subdir:
+    dtype: bool
+    sdesc: Outputs will be placed into an identifier subdirectory based on the input data
+    default: True
+
+  .netcdf:
+    dtype: bool
+    sdesc: Output as NetCDF4
+    default: false
 
   .merge:
     dtype: bool
@@ -98,18 +108,14 @@
     default: false
 
   .geotiff:
-    dtype: dict
-    sdesc: Output as TIFF
-
-    .crs:
-      dtype: str
-      sdesc: CRS to set
-      default: epsg:4326
-
-  .netcdf:
     dtype: bool
-    sdesc: Output as NetCDF4
-    default: false
+    sdesc: Output as GeoTIFF
+    default: True
+
+  .crs:
+    dtype: str
+    sdesc: CRS to set for GeoTIFFs
+    default: epsg:4326
 
 .download:
   dtype: dict

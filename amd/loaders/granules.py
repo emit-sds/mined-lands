@@ -83,7 +83,7 @@ class Granule:
         # Will cache loaded products
         self.cache = {}
 
-        self.log = logging.getLogger(f'granule[{granule}]')
+        self.log = logging.getLogger(f'Granule[{granule}]')
 
     def __repr__(self):
         return f'<EMIT Granule({self.granule})'
@@ -115,7 +115,8 @@ class Granule:
     def load(self, product, merge=False):
         """
         Loads an EMIT product using emit_tools. If the product doesn't presently exist
-        then it will be downloaded.
+        then it will be downloaded. A loaded product will remain in memory in the
+        self.cache dict.
 
         Parameters
         ----------

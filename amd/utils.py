@@ -12,8 +12,8 @@ import ray
 
 import xarray as xr
 
-from emit_tools   import emit_xarray
-from mlky.ext.ray import Config as C
+from emit_tools import emit_xarray
+from mlky       import Config as C
 
 
 Logger = logging.getLogger('amd/utils')
@@ -39,9 +39,8 @@ def initConfig(config, patch, defs, override, printconfig=False, printonly=False
         if printonly:
             sys.exit()
 
-    if initray:
+    if C.ray:
         ray.init(**C.ray)
-        C.initRay()
 
 
 def initLogging(mode=None):
@@ -80,18 +79,33 @@ def initLogging(mode=None):
         handlers = handlers,
     )
 
+    yaml = C.toYaml(listStyle='short', comments=None, header=False)
+    Logger.debug(f'Working config:\n{yaml}')
 
-def getEarthAccessSession():
+
+def getEarthAccessSession(interactive=False, persist=True):
     """
+    Initiates a session with earthaccess
+
+    Returns
+    -------
+    earthaccess.auth.SessionWithHeaderRedirection
+        Returns an active session if succesful
     """
     try:
         Logger.info('Logging into earthaccess')
-        earthaccess.login()
+        if interactive:
+            earthaccess.login()
+        else:
+            try:
+                # Try existing netrc
+                earthaccess.login(strategy='netrc')
+            except:
+                # Otherwise try the environment, persist the credentials if available
+                earthaccess.login(strategy='environment', persist=persist)
         return earthaccess.get_requests_https_session()
     except:
         Logger.exception('Failed to start a session with earthaccess')
-
-    return False
 
 
 def download(url, session=None, output='./downloads', overwrite=False, chunk_size=64*2**20):
