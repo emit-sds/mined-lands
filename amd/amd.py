@@ -124,6 +124,14 @@ class AMD:
         subdir : bool, default=True
             Create a subdirectory in the output directory with the name of the
             processed product
+        subname : str, default=None
+            Appends a subname to the product name, ie. f"{self.name}-{subname}"
+        netcdf : bool, default=True
+            Write out as a NetCDF4 file
+        geotiff : bool, default=False
+            Write out as a GeoTIFF file
+        crs : str, default='epsg:4326'
+            The CRS to use for GeoTIFF output
         """
         if not any([netcdf, geotiff]):
             self.log.warning('Neither netcdf nor geotiff were enabled, nothing to save out')
@@ -135,6 +143,7 @@ class AMD:
 
         path.mkdir(exist_ok=True, parents=True)
 
+        name = self.name
         if subname:
             name = f'{self.name}-{subname}'
 
@@ -150,7 +159,7 @@ class AMD:
             if crs:
                 ds = ds.rio.write_crs(crs)
 
-            ds.rio.to_raster(path)
+            ds.rio.to_raster(file)
 
             self.log.info(f'Wrote geotiff to: {file}')
 
