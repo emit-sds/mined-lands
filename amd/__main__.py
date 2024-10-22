@@ -51,6 +51,28 @@ def main(disablevalidate, **kwargs):
         Logger.error('Please correct the configuration errors before proceeding')
 
 
+@cli.command(name='download', context_settings={'show_default': True})
+@mlky.cli.config
+@mlky.cli.patch
+@mlky.cli.defs(default=defs)
+@mlky.cli.override
+@click.option("-pc", "--printConfig", is_flag=True, help="Prints the configuration to terminal and continues")
+@click.option("-po", "--printOnly", is_flag=True, help="Prints the configuration to terminal and exits")
+def download(**kwargs):
+    """\
+    Downloads files using the AMD download function
+    """
+    utils.initConfig(**kwargs, print=click.echo, initray=False)
+
+    utils.initLogging()
+
+    if C.download:
+        Logger.info(f'Downloading files')
+        utils.batchDownload(**C.download)
+    else:
+        Logger.warning(f'No download section defined')
+
+
 # Add mlky as subcommands
 mlky.cli.setDefaults(patch='generated', defs=defs)
 cli.add_command(mlky.cli.commands)
