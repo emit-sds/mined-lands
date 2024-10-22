@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 import mlky
 
-from mlky.ext.ray import Config as C
+from mlky import Config as C
 
 # Internal
 from amd import utils
@@ -43,34 +43,34 @@ def main(disablevalidate, **kwargs):
     utils.initConfig(**kwargs, print=click.echo)
 
     if C.validateObj() or disablevalidate:
-        from amd.minerals import main
+        from amd import process
 
         utils.initLogging()
-        main()
+        process()
     else:
         Logger.error('Please correct the configuration errors before proceeding')
 
 
-@cli.command(name='download', context_settings={'show_default': True})
-@mlky.cli.config
-@mlky.cli.patch
-@mlky.cli.defs(default=defs)
-@mlky.cli.override
-@click.option("-pc", "--printConfig", is_flag=True, help="Prints the configuration to terminal and continues")
-@click.option("-po", "--printOnly", is_flag=True, help="Prints the configuration to terminal and exits")
-def download(**kwargs):
-    """\
-    Downloads files using the AMD download function
-    """
-    utils.initConfig(**kwargs, print=click.echo, initray=False)
-
-    utils.initLogging()
-
-    if C.download:
-        Logger.info(f'Downloading files')
-        utils.batchDownload(**C.download)
-    else:
-        Logger.warning(f'No download section defined')
+# @cli.command(name='download', context_settings={'show_default': True})
+# @mlky.cli.config
+# @mlky.cli.patch
+# @mlky.cli.defs(default=defs)
+# @mlky.cli.override
+# @click.option("-pc", "--printConfig", is_flag=True, help="Prints the configuration to terminal and continues")
+# @click.option("-po", "--printOnly", is_flag=True, help="Prints the configuration to terminal and exits")
+# def download(**kwargs):
+#     """\
+#     Downloads files using the AMD download function
+#     """
+#     utils.initConfig(**kwargs, print=click.echo, initray=False)
+#
+#     utils.initLogging()
+#
+#     if C.download:
+#         Logger.info(f'Downloading files')
+#         utils.batchDownload(**C.download)
+#     else:
+#         Logger.warning(f'No download section defined')
 
 
 # Add mlky as subcommands
