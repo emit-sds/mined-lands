@@ -25,14 +25,21 @@ local: # Populated with test data as an example, change as needed
   output:
     dir: ./output
 
+flat: # If your granules are in a single directory flat structure
+  mlky.patch: local
+  input:
+    granules:
+      dir: .local/data/flat
+      subdir: False
+
 cluster:
   version: no-version
   input:
     rasters:
-      dir: /scratch/jamesmo/amd/data/mosaics/glts_5_cloudy_20240120_global/l2b/
+      dir: ~/scratch/amd/data/mosaics/glts_5_cloudy_20240120_global/l2b/
       products: '*.hdr'
   output:
-    dir: /scratch/jamesmo/amd/data/mosaics/output/${version}
+    dir: ~/scratch/amd/data/mosaics/output/${version}
     merge: false
     netcdf: false
     geotiff: true

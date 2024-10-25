@@ -25,7 +25,7 @@ def cli():
 
 
 # Path to the mlky definitions file
-defs = Path(__file__).parent / 'configs/defs/defs.yml'
+defs = Path(__file__).parent / '../configs/defs/defs.yml'
 
 
 @cli.command(name='run', context_settings={'show_default': True})
@@ -43,7 +43,7 @@ def main(disablevalidate, **kwargs):
     utils.initConfig(**kwargs, print=click.echo)
 
     if C.validateObj() or disablevalidate:
-        from amd import process
+        from amd.batch import process
 
         utils.initLogging()
         process()
