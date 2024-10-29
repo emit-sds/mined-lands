@@ -79,8 +79,9 @@ def initLogging(mode=None):
         handlers = handlers,
     )
 
-    yaml = C.toYaml(listStyle='short', comments=None, header=False)
-    Logger.debug(f'Working config:\n{yaml}')
+    if C:
+        yaml = C.toYaml(listStyle='short', comments=None, header=False)
+        Logger.debug(f'Working config:\n{yaml}')
 
 
 def getEarthAccessSession(interactive=False, persist=True):
