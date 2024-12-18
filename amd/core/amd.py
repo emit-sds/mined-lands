@@ -151,7 +151,7 @@ class AMD:
 
             self.log.info(f'Wrote geotiff to: {file}')
 
-    def process(self, hashmap, classify, colorize=None, merge=False, save=True, **kwargs):
+    def process(self, hashmap, classify, colorize=None, merge=False, save=True, exit=True, **kwargs):
         """
         TODO
 
@@ -166,6 +166,8 @@ class AMD:
             Merge processed variables together
         save : bool, default=True
             Save processed variables
+        exit : bool, default=True
+            Calls self.exit to exit this object if it is a ray actor
         kwargs : dict
             Output parameters passed directly to the `save` function
 
@@ -212,7 +214,18 @@ class AMD:
                 except:
                     self.log.exception(f'Failed to save {var}-colors')
 
+        if exit:
+            self.exit()
+
         return self.products
+
+    def exit(self):
+        """
+        Calls ray.actor.exit_actor
+        """
+        import ray
+
+        ray.actor.exit_actor()
 
     @staticmethod
     def makeHashmap(dict):

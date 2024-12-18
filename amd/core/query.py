@@ -159,8 +159,8 @@ def query(
 
     Returns
     -------
-    fids : list[str]
-        List of filtered FIDs
+    granules : list[str]
+        List of filtered granule IDs
     """
     if coverage_file:
         Logger.info('Loading coverage from file')
@@ -175,17 +175,20 @@ def query(
     filter_time(coverage, start_date, end_date)
     filter_clouds(coverage, fraction)
 
-    fids = '\n'.join([feature['properties']['fid'] for feature in coverage['features']])
+    granules = '\n'.join([
+        feature['properties']['L2A Reflectance Download'][-34:-3]
+        for feature in coverage['features']
+    ])
     if output:
         with open(output, 'w') as file:
-            file.write(fids)
+            file.write(granules)
 
-        Logger.info(f'Wrote FIDs to {output}')
+        Logger.info(f'Wrote granules to {output}')
     else:
-        Logger.info(f'FIDs retrieved:\n{fids}')
+        Logger.info(f'Granules retrieved:\n{granules}')
 
     Logger.info('Finished')
-    return fids
+    return granules
 
 
 @click.command(name='query')
@@ -224,3 +227,7 @@ if __name__ == '__main__':
         datefmt  = '%m-%d %H:%M',
     )
     cli()
+
+#%%
+
+coverage['features'][0]

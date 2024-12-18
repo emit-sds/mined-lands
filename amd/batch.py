@@ -74,8 +74,13 @@ def process():
 
         products = flags.pop('products')
         if isinstance(products, str):
-            Logger.info(f'Using glob to discover products: {flags.dir / products}')
-            products = parseGlob(flags.dir.glob(products))
+            if products.endswith('.txt'):
+                Logger.info(f'Reading products from file: {products}')
+                with open(products, 'r') as file:
+                    products = file.read().split('\n')
+            else:
+                Logger.info(f'Using glob to discover products: {flags.dir / products}')
+                products = parseGlob(flags.dir.glob(products))
 
         for item in products:
             Logger.debug(f'Item: {item}')
@@ -90,7 +95,7 @@ def process():
     report = Track(jobs, step=1, reverse=True, print=Logger.info, message="Jobs processed")
     while jobs:
         [done], jobs = ray.wait(jobs, num_returns=1)
-        ray.get(done)
+        # ray.get(done)
         report(jobs)
 
     Logger.info('Finished')
