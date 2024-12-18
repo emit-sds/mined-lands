@@ -227,7 +227,3 @@ if __name__ == '__main__':
         datefmt  = '%m-%d %H:%M',
     )
     cli()
-
-#%%
-
-coverage['features'][0]
