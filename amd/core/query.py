@@ -9,7 +9,10 @@ from shapely.geometry import Polygon
 
 Logger = logging.getLogger('amd/query')
 CovURL = 'https://earth.jpl.nasa.gov/emit-mmgis-lb/Missions/EMIT/Layers/coverage/coverage_pub.json'
-
+Info = {
+    'granule' : 'L2A Reflectance Download',
+    'fid' : 'fid'
+}
 
 def filter_roi(coverage, lat, lon, inplace=True):
     """
@@ -135,6 +138,7 @@ def query(
     start_date    = None,
     end_date      = None,
     fraction      = 1.,
+    info          = 'granule',
     output        = None
 ):
     """
@@ -175,20 +179,26 @@ def query(
     filter_time(coverage, start_date, end_date)
     filter_clouds(coverage, fraction)
 
-    granules = '\n'.join([
-        feature['properties']['L2A Reflectance Download'][-34:-3]
-        for feature in coverage['features']
-    ])
+    data = []
+    prop = Info[info]
+    for feature in coverage['features']:
+        data.append(feature['properties'][prop])
+
+        if info == 'granule':
+            data[-1] = data[-1][-34:-3]
+
+    string = '\n'.join(data)
+
     if output:
         with open(output, 'w') as file:
-            file.write(granules)
+            file.write(string)
 
-        Logger.info(f'Wrote granules to {output}')
+        Logger.info(f'Wrote to {output}')
     else:
-        Logger.info(f'Granules retrieved:\n{granules}')
+        Logger.info(f'Data retrieved:\n{string}')
 
     Logger.info('Finished')
-    return granules
+    return data
 
 
 @click.command(name='query')
@@ -209,6 +219,9 @@ def query(
 )
 @click.option('-f', '--fraction', default=1, type=float,
     help='Maximum cloud fraction allowed'
+)
+@click.option('-i', '--info', type=click.Choice(Info), default='granule',
+    help='Type of information to retrieve'
 )
 @click.option('-o', '--output',
     help='Output txt file to save FIDs'
