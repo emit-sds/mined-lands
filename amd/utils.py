@@ -19,7 +19,7 @@ from mlky       import Config as C
 Logger = logging.getLogger('amd/utils')
 
 
-def initConfig(config, patch, defs, override, printconfig=False, printonly=False, print=print, initray=True):
+def initConfig(config, patch, defs, override, printconfig=False, printonly=False, initray=True):
     """
     Initializes the mlky Config object
 

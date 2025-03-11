@@ -41,7 +41,7 @@ def main(disablevalidate, **kwargs):
     """\
     Executes AMD scripts
     """
-    utils.initConfig(**kwargs, print=click.echo)
+    utils.initConfig(**kwargs)
 
     if C.validateObj() or disablevalidate:
         from amd.batch import process
@@ -50,6 +50,29 @@ def main(disablevalidate, **kwargs):
         process()
     else:
         Logger.error('Please correct the configuration errors before proceeding')
+
+
+# @cli.command(name='stack', context_settings={'show_default': True})
+# @mlky.cli.config
+# @mlky.cli.patch
+# @mlky.cli.defs(default=defs)
+# @mlky.cli.override
+# @click.option('-dv', '--disableValidate', is_flag=True, help='Disables the validation requirement. Validation will still be occur, but execution will not be prevented')
+# @click.option("-pc", "--printConfig", is_flag=True, help="Prints the configuration to terminal and continues")
+# @click.option("-po", "--printOnly", is_flag=True, help="Prints the configuration to terminal and exits")
+# def main(disablevalidate, **kwargs):
+#     """\
+#     Executes AMD scripts
+#     """
+#     utils.initConfig(**kwargs)
+#
+#     if C.validateObj() or disablevalidate:
+#         from amd.batch import process
+#
+#         utils.initLogging()
+#         process()
+#     else:
+#         Logger.error('Please correct the configuration errors before proceeding')
 
 
 # Add mlky as subcommands
