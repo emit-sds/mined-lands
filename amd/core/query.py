@@ -1,5 +1,6 @@
 import json
 import logging
+import ssl
 from datetime import datetime as dtt
 from urllib import request
 
@@ -139,7 +140,8 @@ def query(
     end_date      = None,
     fraction      = 1.,
     info          = 'granule',
-    output        = None
+    output        = None,
+    no_ssl        = False
 ):
     """
     Queries the EMIT coverage JSON for a list of FIDs that meet filter criterias.
@@ -158,8 +160,11 @@ def query(
         Maximum end date
     fraction : float, default=1.0
         Maximum cloud fraction allowed
-    output :
+    output : str, default=None
         Output txt file to save FIDs
+    no_ssl : bool, default=False
+        Allow attempting to pull coverage from URL without validating the SSL
+        certificate. Will still attempt to do so by default
 
     Returns
     -------
@@ -172,8 +177,14 @@ def query(
             coverage = json.load(file)
     else:
         Logger.info('Loading coverage from URL')
-        with request.urlopen(CovURL) as url:
-            coverage = json.load(url)
+        try:
+            with request.urlopen(CovURL) as url:
+                coverage = json.load(url)
+        except:
+            Logger.info('Trying without validating SSL cert')
+            context = ssl._create_unverified_context()
+            with request.urlopen(CovURL, context=context) as url:
+                coverage = json.load(url)
 
     filter_roi(coverage, lat_bounds, lon_bounds)
     filter_time(coverage, start_date, end_date)
@@ -225,6 +236,9 @@ def query(
 )
 @click.option('-o', '--output',
     help='Output txt file to save FIDs'
+)
+@click.option('-ns', '--no-ssl', is_flag=True,
+    help='Disable SSL cert verification [not recommended]'
 )
 def cli(**options):
     """\

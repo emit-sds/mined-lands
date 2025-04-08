@@ -12,22 +12,30 @@ Logger = logging.getLogger('AMD')
 class AMD:
     products = None
 
-    def __init__(self, loader):
+    def __init__(self, loader, name=None):
         """
         Parameters
         ----------
         loader : amd.loaders
             A supported data loader
+        name : str, default=None
+            Optional alternative name to use
         """
         self.data = loader
 
         # Retrieve an identifier for this product
         if hasattr(loader, 'granule'):
-            self.name = loader.granule
+            self.name = name or loader.granule
             self.log  = logging.getLogger(f'AMD[Granule={self.name}]')
         elif hasattr(loader, 'raster'):
-            self.name = loader.raster
+            self.name = name or loader.raster
             self.log  = logging.getLogger(f'AMD[Raster={self.name}]')
+        else:
+            self.name = name or str(loader)
+            self.log  = logging.getLogger(f'AMD[Generic={self.name}]')
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}({self.name})>"
 
     def classify(self, ds, hashmap, mask=None, default=np.nan, **kwargs):
         """
