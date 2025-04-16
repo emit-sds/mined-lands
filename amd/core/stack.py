@@ -203,6 +203,8 @@ def main():
     for group in Config.classify:
         Logger.info(f"Processing {group}")
         files = glob(f"{Config.output.dir}/**/*{group}.tiff")
+
+        Logger.debug(f"{len(files)} files: {files}")
         info, colors = stack(files)
 
         # Save out
@@ -210,6 +212,6 @@ def main():
         for var, vs in colors.items():
             for freq, fs in vs.groupby("freq"):
                 amd.name = f"{group}.freq-{freq}.colors"
-                amd.save(fs, dir=Config.output.dir, subdir=False, netcdf=False, geotiff=True)
+                amd.save(fs.squeeze(), dir=Config.output.dir, subdir=False, netcdf=False, geotiff=True)
 
     Logger.info("Finished")

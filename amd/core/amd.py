@@ -37,7 +37,7 @@ class AMD:
     def __repr__(self):
         return f"<{self.__class__.__name__}({self.name})>"
 
-    def classify(self, ds, hashmap, mask=None, default=np.nan, **kwargs):
+    def classify(self, ds, hashmap, mask=None, default=0, **kwargs):
         """
         Classifies each value in a 2D xarray object to a value defined by a hashmap.
 
@@ -45,7 +45,7 @@ class AMD:
         ----------
         var : str
             Variable to classify
-        default : int, float, default=np.nan
+        default : int, float, default=0
             Default value to replace with if a value is not present in the hashmap
 
         Returns
