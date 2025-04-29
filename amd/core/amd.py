@@ -37,7 +37,7 @@ class AMD:
     def __repr__(self):
         return f"<{self.__class__.__name__}({self.name})>"
 
-    def classify(self, ds, hashmap, mask=None, default=0, **kwargs):
+    def classify(self, ds, hashmap, mask=None, mask_class=0, default=0, **kwargs):
         """
         Classifies each value in a 2D xarray object to a value defined by a hashmap.
 
@@ -45,6 +45,8 @@ class AMD:
         ----------
         var : str
             Variable to classify
+        mask_class : int, float, default=0
+            Value to replace when using the filter mask
         default : int, float, default=0
             Default value to replace with if a value is not present in the hashmap
 
@@ -53,15 +55,18 @@ class AMD:
         data : xr.Dataset, xr.DataArray
             Mapped xarray object
         """
+        self.log.debug(f"Non-class values will default to {default}")
         func = np.vectorize(lambda x: hashmap.get(x, default))
 
+        # File path given, load it
         if isinstance(ds, str):
             ds = self.data.load(ds)
 
         data = xr.apply_ufunc(func, ds)
 
         if mask is not None:
-            data = data.where(mask, default)
+            self.log.debug(f"Replacing mask with {mask_class}")
+            data = data.where(mask, mask_class)
 
         return data
 

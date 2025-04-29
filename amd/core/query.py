@@ -181,10 +181,13 @@ def query(
             with request.urlopen(CovURL) as url:
                 coverage = json.load(url)
         except:
-            Logger.info('Trying without validating SSL cert')
-            context = ssl._create_unverified_context()
-            with request.urlopen(CovURL, context=context) as url:
-                coverage = json.load(url)
+            if no_ssl:
+                Logger.info('Trying without validating SSL cert')
+                context = ssl._create_unverified_context()
+                with request.urlopen(CovURL, context=context) as url:
+                    coverage = json.load(url)
+            else:
+                raise
 
     filter_roi(coverage, lat_bounds, lon_bounds)
     filter_time(coverage, start_date, end_date)

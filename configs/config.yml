@@ -46,10 +46,41 @@ cluster:
       dir: /store/jamesmo/amd/runs/mosaics/data/l2b/
       products: 'min_*.hdr'
   output:
-    dir: ~/scratch/amd/data/mosaics/output/${version}
+    dir: /store/jamesmo/amd/runs/mosaics/${version}
     merge: false
     netcdf: false
     geotiff: true
+  ray:
+    num_cpus: 20
+
+mosaic:
+  mlky.patch: cluster
+  input:
+    rasters:
+      dir: /store/jamesmo/amd/runs/${run}/applied/
+      products: 'min_*'
+  output:
+    dir: /store/jamesmo/amd/runs/${run}/${version}
+
+iron-mountain:
+  mlky.patch: mosaic
+  run: iron-mountain
+
+leadville:
+  mlky.patch: mosaic
+  run: leadville
+
+bingham-canyon:
+  mlky.patch: mosaic
+  run: bingham-canyon
+
+nw-us:
+  mlky.patch: mosaic
+  run: nw-us
+
+sw-us:
+  mlky.patch: mosaic
+  run: sw-us
 
 # Downloads
 
@@ -91,6 +122,35 @@ loc1: # ALUM GULCH, LEAD QUEEN
 quiet:
   log:
     terminal: INFO
+
+# Filters
+
+filter-depth:
+  classify:
+    group_1_mineral_id:
+      filter:
+        group_1_band_depth: "> .05"
+    group_2_mineral_id:
+      filter:
+        group_2_band_depth: "> .05"
+
+filter-fit:
+  classify:
+    group_1_mineral_id:
+      filter:
+        group_1_fit: "> .4"
+    group_2_mineral_id:
+      filter:
+        group_2_fit: "> .4"
+
+filter-cloud:
+  classify:
+    group_1_mineral_id:
+      filter:
+        clouds: [0, 1, 3]
+    group_2_mineral_id:
+      filter:
+        clouds: [0, 1, 3]
 
 # Versions
 
@@ -159,28 +219,6 @@ v3:
       filter:
         group_2_band_depth: "> .05"
 
-v3-uncert:
-  mlky.patch: v3
-  version: v3.1
-  classify:
-    group_1_mineral_id:
-      filter:
-        group_1_fit: "> .4"
-    group_2_mineral_id:
-      filter:
-        group_2_fit: "> .4"
-
-v3-cloud:
-  mlky.patch: v3
-  version: v3.2
-  classify:
-    group_1_mineral_id:
-      filter:
-        clouds: [0, 1, 3]
-    group_2_mineral_id:
-      filter:
-        clouds: [0, 1, 3]
-
 v4:
   version: v4
   hashmap: # Minerals mapping
@@ -197,9 +235,15 @@ v4:
     3: [ 25, 101, 176, 255]
 
 v5:
-  mlky.patch: v3-uncert<-v3-cloud
+  mlky.patch: v3
   version: v5
   hashmap: # Minerals mapping
+    # Fake NaNs
+    -3: [-9999]
+    # Tetracorder NaNs
+    -2: [0]
+    # Vegetation
+    -1: [96, 97, 98]
     # pyrite
     1: [10, 78, 80]
     # goethite
@@ -207,7 +251,16 @@ v5:
     # hematite
     3: [30, 31, 32, 33]
   colors:
-    #     R,   G,   B,   A
-    1: [220,   5,  12, 255]
-    2: [247, 240,  87, 255]
-    3: [ 25, 101, 176, 255]
+    #      R,   G,   B,   A
+    -3: [128, 128, 128,   0]
+    -2: [128, 128, 128, 255]
+    -1: [  0, 255,   0, 255]
+    0:  [255, 255, 255, 255]
+    1:  [220,   5,  12, 255]
+    2:  [247, 240,  87, 255]
+    3:  [ 25, 101, 176, 255]
+  classify:
+    group_1_mineral_id:
+      mask_class: -2
+    group_2_mineral_id:
+      mask_class: -2
