@@ -19,7 +19,7 @@ from mlky       import Config as C
 Logger = logging.getLogger('amd/utils')
 
 
-def initConfig(config, patch, defs, override, printconfig=False, printonly=False, print=print, initray=True):
+def initConfig(config, patch, defs, override, printconfig=False, printonly=False, initray=True):
     """
     Initializes the mlky Config object
 
@@ -79,8 +79,9 @@ def initLogging(mode=None):
         handlers = handlers,
     )
 
-    yaml = C.toYaml(listStyle='short', comments=None, header=False)
-    Logger.debug(f'Working config:\n{yaml}')
+    if C:
+        yaml = C.toYaml(listStyle='short', comments=None, header=False)
+        Logger.debug(f'Working config:\n{yaml}')
 
 
 def getEarthAccessSession(interactive=False, persist=True):

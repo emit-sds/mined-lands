@@ -6,6 +6,37 @@ from pathlib import Path
 import xarray as xr
 
 
+ProductVariables = {
+    'min': [
+        'group_1_band_depth',
+        'group_1_mineral_id',
+        'group_2_band_depth',
+        'group_2_mineral_id'
+    ],
+    'minunc': [
+        'group_1_band_depth_unc',
+        'group_1_fit',
+        'group_2_band_depth_unc',
+        'group_2_fit'
+    ],
+    # 'mask': [
+    #     'Cloud flag',
+    #     'Cirrus flag',
+    #     'Water flag',
+    #     'Spacecraft Flag',
+    #     'Dilated Cloud Flag',
+    #     'AOD550',
+    #     'H2O (g cm-2)',
+    #     'Aggregate Flag'
+    # ]
+}
+# Create a hashtable the dim: product source
+VariableSources = {var: source
+    for source, variable in ProductVariables.items()
+        for var in variable
+}
+
+
 class Raster:
     """
     EMIT raster manager
@@ -13,18 +44,16 @@ class Raster:
     ds   = None
     mask = None
 
-    bands = [
-        'group_1_band_depth',
-        'group_1_mineral_id',
-        'group_2_band_depth',
-        'group_2_mineral_id'
-    ]
+    # For user reference
+    productVariables = ProductVariables
+    variableSources  = VariableSources
+
     rename = {
         'y': 'latitude',
         'x': 'longitude'
     }
 
-    def __init__(self, raster, dir='.', bands=None, rename=None):
+    def __init__(self, raster, dir='.', rename=None):
         """
         Parameters
         ----------
@@ -32,14 +61,6 @@ class Raster:
             EMIT raster name
         dir : str, default='.'
             Path to directory to search for the raster
-        bands : list, default=None
-            Unpacks the `band_data` variable into independent variables. None uses the built-in default:
-                [
-                    'group_1_band_depth',
-                    'group_1_mineral_id',
-                    'group_2_band_depth',
-                    'group_2_mineral_id'
-                ]
         rename : dict, default=None
             Renames dimensions/variables to something else. None uses the built-in default:
                 {
@@ -47,26 +68,29 @@ class Raster:
                     'x': 'longitude'
                 }
         """
+        self.dir = Path(dir)
+
+        if raster.endswith('.hdr'):
+            raster = raster[:-4]
+
+        split = raster.split('_')
+        if split[0] in ProductVariables:
+            raster = '_'.join(split[1:])
+
         self.raster = raster
-        self.file   = Path(dir) / raster
 
-        # Raster input
-        if not self.file.suffix:
-            self.header = self.file.with_suffix('.hdr')
+        # Reference dictionary
+        self.products = {
+            # 'rfl'   : Path(f'rfl_{raster}'),
+            # 'rflunc': Path(f'rflunc_{raster}'),
+            # 'mask'  : Path(f'mask_{raster}'),
+            'min'   : Path(f'min_{raster}'),
+            'minunc': Path(f'minunc_{raster}')
+        }
 
-        # Header input
-        elif self.file.suffix == '.hdr':
-            self.header = self.file
-            self.file   = self.header.with_suffix('')
+        # Will cache loaded products
+        self.cache = {}
 
-        # Verify files exist
-        if not self.file.exists():
-            raise AttributeError(f'Input raster file does not exist: {self.file}')
-        if not self.header.exists():
-            raise AttributeError(f'Header file not found for raster file: {self.header}')
-
-        if bands is not None:
-            self.bands = bands
         if rename is not None:
             self.rename = rename
 
@@ -75,7 +99,7 @@ class Raster:
     def __repr__(self):
         return f'<EMIT Raster({self.raster})'
 
-    def load(self, var=None):
+    def _load_raster(self, file):
         """
         Loads an EMIT raster using xarray.
 
@@ -90,26 +114,107 @@ class Raster:
         xr.Dataset, xr.DataArray, list[xr.Dataset, xr.DataArray]
             Loaded data/variable(s)
         """
-        if self.ds is None:
-            self.log.debug(f'Loading raster {self.file}')
-            ds = xr.load_dataset(self.file, engine='rasterio')
+        self.log.debug(f'Loading raster {file}')
+        ds = xr.load_dataset(file, engine='rasterio')
 
-            # Split the band dimension
-            if self.bands:
-                self.log.debug(f'Unpacking `band_data` variable along the `band` dimension as: {self.bands}')
-                ds['band'] = list(self.bands)
-                ds = ds['band_data'].to_dataset('band')
+        # Split the band dimension
+        product = file.name.split('_')[0]
+        bands = ProductVariables.get(product)
+        if bands:
+            self.log.debug(f'Unpacking `band_data` variable along the `band` dimension as: {bands}')
+            ds['band'] = list(bands)
+            ds = ds['band_data'].to_dataset('band')
 
-            # Rename dimensions
-            if self.rename:
-                self.log.debug(f'Renaming variables/coords: {self.rename}')
-                ds = ds.rename(**self.rename)
+        # Rename dimensions
+        if self.rename:
+            self.log.debug(f'Renaming variables/coords: {self.rename}')
+            for key, val in self.rename.items():
+                ds = ds.rename({key: val})
 
-            self.ds = ds
+        return ds
 
-        if var:
-            return self.ds[var]
-        return self.ds
+    def getProduct(self, product):
+        """
+        Retrieves a product from the self.products reference table, otherwise returns
+        the input
+
+        Parameters
+        ----------
+        product : str, Path
+            Product of interest. This can also be a variable from a product which will
+            load that product
+
+        Returns
+        -------
+        Path
+            Corresponding product
+        """
+        if isinstance(product, str):
+            if product in VariableSources:
+                product = VariableSources[product]
+            if product not in self.products:
+                raise AttributeError(f'Unknown product {product!r}, must be one of {self.products.keys()} or a variable {list(VariableSources)}')
+            return self.products[product]
+        return product
+
+    def load(self, product, merge=False, ignore=False):
+        """
+        Loads a product an EMIT mosaic. A loaded product will remain in memory in the
+        self.cache dict.
+
+        Parameters
+        ----------
+        product : str, Path, list[str], 'all'
+            Product of interest. This can also be a variable from a product which will
+            load that product. If 'all' or a list, loads multiple products.
+        merge : bool, default=False
+            If multiple products are loaded, merge them together into a single dataset
+        ignore : bool, default=False
+            Ignore products that do not exist (ie. do not raise)
+
+        Returns
+        -------
+        xr.Dataset, xr.DataArray, list[xr.Dataset, xr.DataArray]
+            Loaded data product(s)/variable(s)
+        """
+        if product == 'all' or isinstance(product, list):
+            if product == 'all':
+                product = self.products
+
+            data = []
+            for prod in product:
+                load = self.load(prod, ignore=ignore)
+                if load is not None:
+                    data.append(load)
+
+            if merge:
+                return xr.merge(data)
+            return data
+
+        path = self.getProduct(product)
+
+        if not (file := path).exists():
+            file = self.dir / path
+
+        if not (header := file.with_suffix('.hdr')):
+            self.log.error(f'Product header file not found: {header}')
+            if not ignore:
+                raise FileNotFoundError(f'Product header file not found: {header}')
+
+        if file.exists():
+            if path not in self.cache:
+                self.log.info(f'Loading product {file}')
+                self.cache[path] = self._load_raster(file)
+
+            # Return a variable of the product if that was the original request
+            data = self.cache[path]
+            if product in data:
+                return data[product]
+            return data
+        else:
+            self.log.error(f'Product file not found: {file}')
+            if not ignore:
+                raise FileNotFoundError(f'Product file not found: {file}')
 
     def filterConditional(self, var, cond, reset=False):
         """
@@ -163,7 +268,7 @@ class Raster:
         self.mask = None
 
         for var, strat in filters.items():
-            if var in self.bands:
+            if var in VariableSources:
                 self.log.info('Filtering conditional')
                 self.filterConditional(var, strat)
             else:

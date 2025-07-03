@@ -3,19 +3,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import ray
 import xarray as xr
-
-from mlky import (
-    Config,
-    Sect
-)
-from mlky.utils import Track
-
-from amd.loaders import (
-    Granule,
-    Raster
-)
 
 
 Logger = logging.getLogger('AMD')
@@ -24,24 +12,32 @@ Logger = logging.getLogger('AMD')
 class AMD:
     products = None
 
-    def __init__(self, loader):
+    def __init__(self, loader, name=None):
         """
         Parameters
         ----------
         loader : amd.loaders
             A supported data loader
+        name : str, default=None
+            Optional alternative name to use
         """
         self.data = loader
 
         # Retrieve an identifier for this product
         if hasattr(loader, 'granule'):
-            self.name = loader.granule
+            self.name = name or loader.granule
             self.log  = logging.getLogger(f'AMD[Granule={self.name}]')
         elif hasattr(loader, 'raster'):
-            self.name = loader.raster
+            self.name = name or loader.raster
             self.log  = logging.getLogger(f'AMD[Raster={self.name}]')
+        else:
+            self.name = name or str(loader)
+            self.log  = logging.getLogger(f'AMD[Generic={self.name}]')
 
-    def classify(self, ds, hashmap, mask=None, default=np.nan, **kwargs):
+    def __repr__(self):
+        return f"<{self.__class__.__name__}({self.name})>"
+
+    def classify(self, ds, hashmap, mask=None, mask_class=0, default=0, **kwargs):
         """
         Classifies each value in a 2D xarray object to a value defined by a hashmap.
 
@@ -49,7 +45,9 @@ class AMD:
         ----------
         var : str
             Variable to classify
-        default : int, float, default=np.nan
+        mask_class : int, float, default=0
+            Value to replace when using the filter mask
+        default : int, float, default=0
             Default value to replace with if a value is not present in the hashmap
 
         Returns
@@ -57,15 +55,18 @@ class AMD:
         data : xr.Dataset, xr.DataArray
             Mapped xarray object
         """
+        self.log.debug(f"Non-class values will default to {default}")
         func = np.vectorize(lambda x: hashmap.get(x, default))
 
+        # File path given, load it
         if isinstance(ds, str):
             ds = self.data.load(ds)
 
         data = xr.apply_ufunc(func, ds)
 
         if mask is not None:
-            data = data.where(mask, default)
+            self.log.debug(f"Replacing mask with {mask_class}")
+            data = data.where(mask, mask_class)
 
         return data
 
@@ -163,7 +164,7 @@ class AMD:
 
             self.log.info(f'Wrote geotiff to: {file}')
 
-    def process(self, hashmap, classify, colorize=None, merge=False, save=True, **kwargs):
+    def process(self, hashmap, classify, colorize=None, merge=False, save=True, exit=True, **kwargs):
         """
         TODO
 
@@ -178,6 +179,8 @@ class AMD:
             Merge processed variables together
         save : bool, default=True
             Save processed variables
+        exit : bool, default=True
+            Calls self.exit to exit this object if it is a ray actor
         kwargs : dict
             Output parameters passed directly to the `save` function
 
@@ -224,7 +227,18 @@ class AMD:
                 except:
                     self.log.exception(f'Failed to save {var}-colors')
 
+        if exit:
+            self.exit()
+
         return self.products
+
+    def exit(self):
+        """
+        Calls ray.actor.exit_actor
+        """
+        import ray
+
+        ray.actor.exit_actor()
 
     @staticmethod
     def makeHashmap(dict):
@@ -243,62 +257,3 @@ class AMD:
             Hashmap of {float: float}
         """
         return {float(val): float(key) for key, vals in dict.items() for val in vals}
-
-
-def process():
-    """
-    Batch executes AMD.process in parallel using a mlky config
-    """
-    if True not in (Config.output.netcdf, Config.output.geotiff):
-        Logger.warning('Neither output file types (netcdf, geotiff) are enabled, nothing will be saved')
-    if not Config.output.save:
-        Logger.warning('Config.output.save is disabled, nothing will be saved')
-
-    Logger.info('Setting up jobs')
-
-    # Setup job parameters
-    opts = Sect(
-        hashmap  = AMD.makeHashmap(Config.hashmap),
-        classify = Config.classify,
-        colorize = Config.colors
-    ) | Config.output
-
-    # Place into ray shared memory
-    opts = {key: ray.put(val) for key, val in opts.items()}
-
-    # Create the jobs
-    worker = ray.remote(num_cpus=1)(AMD)
-    actors = []
-    kinds  = {
-        Granule: Config.input.granules,
-        Raster: Config.input.rasters
-    }
-    for obj, flags in kinds.items():
-        Logger.debug(f'Creating jobs for {obj}, flags:\n{flags.toYaml(print=Logger.debug)}')
-
-        products = flags.pop('products')
-        if isinstance(products, str):
-            Logger.info(f'Using glob to discover products: {flags.dir / products}')
-            products = [path.stem for path in flags.dir.glob(products)]
-
-        for item in products:
-            Logger.debug(f'Item: {item}')
-            actor = worker.remote(obj(item, **flags))
-            actors.append(actor)
-
-    jobs = [actor.process.remote(**opts) for actor in actors]
-
-    Logger.info(f'Beginning processing of {len(jobs)} jobs')
-
-    # Execute
-    report = Track(jobs, step=1, reverse=True, print=Logger.info, message="Jobs processed")
-    while jobs:
-        [done], jobs = ray.wait(jobs, num_returns=1)
-        ray.get(done)
-        report(jobs)
-
-    Logger.info('Finished')
-
-
-if __name__ == '__main__':
-    Logger.error('Calling this script directly is not supported, please use the AMD CLI')

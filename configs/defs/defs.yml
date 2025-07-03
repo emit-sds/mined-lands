@@ -197,5 +197,10 @@
 
       .default:
         dtype: float
-        sdesc: Default fill value
-        default: .nan
+        sdesc: Default fill value for non-class values
+        default: 0
+
+      .mask_class:
+        dtype: float
+        sdesc: Default value to replace with where the filter mask hits
+        default: 0

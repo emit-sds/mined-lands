@@ -1,6 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
-from .amd import (
-    AMD,
-    process
-)
+from .core.amd import AMD
+from .batch import process
