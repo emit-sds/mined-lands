@@ -267,7 +267,7 @@ v5:
     0:  [  0,   0,   0, 255]
   classify:
     group_1_mineral_id:
-      mask_class: -2
+      mask_class: -2 # Values filtered by the complete mask classify to this
     group_2_mineral_id:
       mask_class: -2
   stack:
