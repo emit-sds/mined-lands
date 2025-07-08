@@ -19,16 +19,16 @@ ProductVariables = {
         'group_2_band_depth_unc',
         'group_2_fit'
     ],
-    # 'mask': [
-    #     'Cloud flag',
-    #     'Cirrus flag',
-    #     'Water flag',
-    #     'Spacecraft Flag',
-    #     'Dilated Cloud Flag',
-    #     'AOD550',
-    #     'H2O (g cm-2)',
-    #     'Aggregate Flag'
-    # ]
+    'mask': [
+        'Cloud flag',
+        'Cirrus flag',
+        'Water flag',
+        'Spacecraft Flag',
+        'Dilated Cloud Flag',
+        'AOD550',
+        'H2O',
+        'Aggregate Flag'
+    ]
 }
 # Create a hashtable the dim: product source
 VariableSources = {var: source
@@ -64,7 +64,7 @@ class Raster:
         rename : dict, default=None
             Renames dimensions/variables to something else. None uses the built-in default:
                 {
-                    'y': 'latitude'
+                    'y': 'latitude',
                     'x': 'longitude'
                 }
         """
@@ -83,7 +83,7 @@ class Raster:
         self.products = {
             # 'rfl'   : Path(f'rfl_{raster}'),
             # 'rflunc': Path(f'rflunc_{raster}'),
-            # 'mask'  : Path(f'mask_{raster}'),
+            'mask'  : Path(f'mask_{raster}'),
             'min'   : Path(f'min_{raster}'),
             'minunc': Path(f'minunc_{raster}')
         }
@@ -237,7 +237,7 @@ class Raster:
             Applied mask & any previous masks
         """
         # Verify this is a valid conditional
-        if re.match(r'([<>]=?) ([-+]?\d*\.?\d+)', cond):
+        if re.match(r'([<>=]=?) ([-+]?\d*\.?\d+)', cond):
             prod = self.load(var)
             mask = eval(f'prod {cond}')
 
@@ -248,7 +248,7 @@ class Raster:
 
             return self.mask
         else:
-            self.log.error(f'Invalid conditional "{var} {cond}", must be of regex form "([<>]=?) ([-+]?\d*\.?\d+)"')
+            self.log.error(f'Invalid conditional "{var} {cond}", must be of regex form "([<>=]=?) ([-+]?\d*\.?\d+)"')
 
     def createFilter(self, filters):
         """
