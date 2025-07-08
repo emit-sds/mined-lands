@@ -278,6 +278,7 @@ def main():
 
         # Save out
         info.to_netcdf(f"{Config.output.dir}/{group}.freq-info.nc")
+
         for var, vs in colors.items():
             for freq, fs in vs.groupby("freq"):
                 amd.name = f"{group}.freq-{freq}.colors"
