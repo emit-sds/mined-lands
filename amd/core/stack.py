@@ -93,12 +93,12 @@ def count(x, Nth=0, type='value', mincount=0, **kwargs):
     ----------
     x : np.array
         Object to operate on
+    Nth : int, default=0
+        Retrieve the Nth largest counted value in reverse notation, eg. 0 = largest
+    type : 'value' | 'count', default='value'
+        Type of value to return, either the count of the value or the value itself
     mincount : int, default=0
         The minimum count for a value to be valid
-    skipna : bool, default=False
-        Skips NaN values
-    ignore : list, default=[]
-        Values to ignore
 
     Returns
     -------
@@ -109,8 +109,9 @@ def count(x, Nth=0, type='value', mincount=0, **kwargs):
 
     values, counts = uniques(x, **kwargs)
 
-    if len(counts) >= Nth:
-        index = np.argsort(counts)[-Nth]
+    if Nth < len(counts):
+        sort = np.argsort(-counts)
+        index = sort[Nth]
 
         if counts[index] > mincount:
             if type == 'count':
@@ -144,28 +145,17 @@ def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
     """
     # Run this function for each variable in the dataset
     if isinstance(ds, xr.Dataset):
-        return xr.Dataset({
-            key: frequency(data, ignore, skipna, mincount, type)
-            for key, data in ds.items()
-        })
+        return ds.map(lambda data: frequency(data, ignore, skipna, mincount, type))
 
-    values, counts = uniques(ds, ignore, skipna)
+    values, _ = uniques(ds, ignore, skipna)
 
-    hold = []
-    for i in range(values.size):
-        func = partial(count,
-            Nth      = i,
-            ignore   = ignore,
-            skipna   = skipna,
-            mincount = mincount,
-            type     = type
-        )
-        hold.append(
-            xr.apply_ufunc(func, ds, input_core_dims=[['product']], vectorize=True)
-        )
+    wrap = lambda Nth: partial(count, Nth=Nth, ignore=ignore, skipna=skipna, mincount=mincount, type=type)
+    hold = [
+        xr.apply_ufunc(wrap(i), ds, input_core_dims=[['product']], vectorize=True, dask='parallelized', output_dtypes=[float])
+        for i in range(values.size)
+    ]
 
-    if hold:
-        return xr.concat(hold, dim='freq')
+    return xr.concat(hold, dim='freq')
 
 
 def parseDate(file):
@@ -244,7 +234,7 @@ def stack(files):
     info, colors, count : xr.Dataset, xr.Dataset, xr.Dataset
     """
     # Load the files along a new dimension
-    ds = xr.open_mfdataset(files, concat_dim="product", combine="nested")
+    ds = xr.open_mfdataset(files, concat_dim="product", combine="nested", parallel=True)
     ds.load()
 
     # Extract useful information
