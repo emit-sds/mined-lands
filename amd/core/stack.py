@@ -113,7 +113,7 @@ def count(x, Nth=0, type='value', mincount=0, **kwargs):
         sort = np.argsort(-counts)
         index = sort[Nth]
 
-        if counts[index] > mincount:
+        if counts[index] >= mincount:
             if type == 'count':
                 return counts[index]
             return values[index]
@@ -173,7 +173,8 @@ def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
 
         hold.append(freq)
 
-    return xr.concat(hold, dim='freq')
+    if hold:
+        return xr.concat(hold, dim='freq')
 
 
 def parseDate(file):
