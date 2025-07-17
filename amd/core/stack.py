@@ -147,13 +147,31 @@ def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
     if isinstance(ds, xr.Dataset):
         return ds.map(lambda data: frequency(data, ignore, skipna, mincount, type))
 
+    # Retrieve the unique values across all pixels
     values, _ = uniques(ds, ignore, skipna)
 
-    wrap = lambda Nth: partial(count, Nth=Nth, ignore=ignore, skipna=skipna, mincount=mincount, type=type)
-    hold = [
-        xr.apply_ufunc(wrap(i), ds, input_core_dims=[['product']], vectorize=True, dask='parallelized', output_dtypes=[float])
-        for i in range(values.size)
-    ]
+    hold = []
+    for i in range(values.size):
+        func = partial(
+            count,
+            Nth = i,
+            type = type,
+            ignore = ignore,
+            skipna = skipna,
+            mincount = mincount
+        )
+        freq = xr.apply_ufunc(func, ds,
+            input_core_dims = [['product']],
+            vectorize = True,
+            dask = 'parallelized',
+            output_dtypes = [float]
+        )
+
+        # Check if the first band is fully NaN, break early if so
+        if freq[0].isnull().all()
+            break
+
+        hold.append(freq)
 
     return xr.concat(hold, dim='freq')
 
