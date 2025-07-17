@@ -168,7 +168,7 @@ def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
         )
 
         # Check if the first band is fully NaN, break early if so
-        if freq[0].isnull().all()
+        if freq[0].isnull().all():
             break
 
         hold.append(freq)
