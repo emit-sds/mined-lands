@@ -13,6 +13,8 @@ from mlky import Config as C
 from amd import utils
 from amd.core import query
 
+# rasterio._io is very spammy
+logging.getLogger("rasterio._io").setLevel(logging.ERROR)
 
 Logger = logging.getLogger('amd/cli')
 
