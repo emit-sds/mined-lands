@@ -41,6 +41,8 @@ class Raster:
     """
     EMIT raster manager
     """
+    conditionalRegex = r'([<>=]=?) ([-+]?\d*\.?\d+)'
+
     ds   = None
     mask = None
 
@@ -216,14 +218,14 @@ class Raster:
             if not ignore:
                 raise FileNotFoundError(f'Product file not found: {file}')
 
-    def filterConditional(self, var, cond, reset=False):
+    def maskConditional(self, var, cond, reset=False):
         """
-        Creates a mask using a conditional filter on a variable
+        Creates a mask using a conditional on a variable
 
         Parameters
         ----------
         var : str
-            Variable to filter on
+            Variable to mask on
         cond : str
             Conditional string in the regex form "([<>]=?) ([-+]?\d*\.?\d+)"
             Ie. must start with [<,>,<=,>=], following by a space, followed by a
@@ -237,8 +239,10 @@ class Raster:
             Applied mask & any previous masks
         """
         # Verify this is a valid conditional
-        if re.match(r'([<>=]=?) ([-+]?\d*\.?\d+)', cond):
+        if re.match(self.conditionalRegex, cond):
             prod = self.load(var)
+
+            # Create mask, eg: "ds < .4"
             mask = eval(f'prod {cond}')
 
             if reset or self.mask is None:
@@ -248,30 +252,30 @@ class Raster:
 
             return self.mask
         else:
-            self.log.error(f'Invalid conditional "{var} {cond}", must be of regex form "([<>=]=?) ([-+]?\d*\.?\d+)"')
+            self.log.error(f'Invalid conditional "{var} {cond}", must be of regex form {self.conditionalRegex!r}')
 
-    def createFilter(self, filters):
+    def createMask(self, conds):
         """
-        Create a single mask filter from a combination of filters
+        Create a single mask from a combination of conditionals
 
         Parameters
         ----------
-        filters : dict
-            Filters to apply
+        conds : dict
+            Conditionals to apply
 
         Returns
         -------
         self.mask : xr.DataArray
-            Combined boolean mask of all filters using &
+            Combined boolean mask of all conditional masks using &
         """
         # Reset the current mask, if there is one
         self.mask = None
 
-        for var, strat in filters.items():
+        for var, strat in conds.items():
             if var in VariableSources:
-                self.log.info('Filtering conditional')
-                self.filterConditional(var, strat)
+                self.log.info('Creating conditional mask')
+                self.maskConditional(var, strat)
             else:
-                self.log.error(f'Invalid filter provided: {var}: {strat}')
+                self.log.error(f'Invalid conditional provided: {var}: {strat}')
 
         return self.mask
