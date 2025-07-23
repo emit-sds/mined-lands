@@ -227,7 +227,7 @@ class Raster:
         var : str
             Variable to mask on
         cond : str
-            Conditional string in the regex form "([<>]=?) ([-+]?\d*\.?\d+)"
+            Conditional string in the regex form "([<>]=?) ([-+]?\\d*\\.?\\d+)"
             Ie. must start with [<,>,<=,>=], following by a space, followed by a
             positive or negative int or float. Scientific notation is not supported.
         reset : bool, default=False
@@ -248,7 +248,7 @@ class Raster:
             if reset or self.mask is None:
                 self.mask = mask
             else:
-                self.mask &= mask
+                self.mask |= mask
 
             return self.mask
         else:
