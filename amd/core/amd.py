@@ -37,7 +37,7 @@ class AMD:
     def __repr__(self):
         return f"<{self.__class__.__name__}({self.name})>"
 
-    def classify(self, ds, hashmap, mask=None, mask_class=0, default=0, **kwargs):
+    def classify(self, ds, hashmap, mask=None, mask_class=0, default=0):
         """
         Classifies each value in a 2D xarray object to a value defined by a hashmap.
 
@@ -198,7 +198,13 @@ class AMD:
         for var, opts in classify.items():
             self.log.info(f'Classifying {var}')
             self.createMask(opts.mask)
-            self.prods[var] = self.classify(var, hashmap, self.data.mask, **opts)
+            self.prods[var] = self.classify(
+                ds         = var,
+                hashmap    = hashmap,
+                mask       = self.data.mask,
+                mask_class = opts.get('mask_class', 0),
+                default    = opts.get('default', 0),
+            )
 
         if colorize:
             for var, prod in self.prods.items():
