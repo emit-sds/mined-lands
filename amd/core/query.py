@@ -8,7 +8,7 @@ import click
 from shapely.geometry import Polygon
 
 
-Logger = logging.getLogger('amd/query')
+Logger = logging.getLogger(__name__)
 CovURL = 'https://earth.jpl.nasa.gov/emit-mmgis-lb/Missions/EMIT/Layers/coverage/coverage_pub.json'
 Info = {
     'granule' : 'L2A Reflectance Download',

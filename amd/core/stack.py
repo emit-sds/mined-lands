@@ -14,7 +14,7 @@ from amd.core.amd import AMD
 # Generic AMD object to access its functions
 amd = AMD(None)
 
-Logger = logging.getLogger("AMD[Stack]")
+Logger = logging.getLogger(__name__)
 
 
 def subselect(ds, **sel):

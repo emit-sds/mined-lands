@@ -345,6 +345,19 @@ v6:
     9:  [ 25, 101, 176, 255]
     10: [136,  46, 114, 255]
 
+v7:
+  mlky.patch: v6
+  version: v7
+  classify:
+    group_1_mineral_id:
+      mask_class: -4
+    group_2_mineral_id:
+      mask_class: -4
+  colors:
+    -4: [0, 0, 0, 0]
+  stack:
+    ignore: [0, -4]
+
 pyrite:
   hashmap:
     # pyrite
