@@ -256,7 +256,7 @@ class AMD:
             Log options, if provided
         """
         if logs:
-            utils.initLogging()
+            utils.initLogging(logs, mode="append")
 
         # Retrieve an identifier for this product
         if hasattr(self.data, 'granule'):

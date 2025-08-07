@@ -93,8 +93,9 @@ def initLogging(opts, name=None, mode=None):
         handlers = handlers,
     )
 
-    yaml = opts.toYaml(listStyle='short', comments=None, header=False)
-    Logger.debug(f'Working config:\n{yaml}')
+    if C:
+        yaml = C.toYaml(listStyle='short', comments=None, header=False)
+        Logger.debug(f'Working config:\n{yaml}')
 
     return logging.getLogger(name)
 
