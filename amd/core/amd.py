@@ -24,6 +24,7 @@ class AMD:
             Optional alternative name to use
         """
         self.data = loader
+        self.name = name
 
         self.initLogging()
 
@@ -259,13 +260,13 @@ class AMD:
 
         # Retrieve an identifier for this product
         if hasattr(self.data, 'granule'):
-            self.name = name or self.data.granule
+            self.name = self.name or self.data.granule
             self.log  = logging.getLogger(f'AMD[Granule={self.name}]')
         elif hasattr(self.data, 'raster'):
-            self.name = name or self.data.raster
+            self.name = self.name or self.data.raster
             self.log  = logging.getLogger(f'AMD[Raster={self.name}]')
         else:
-            self.name = name or str(self.data)
+            self.name = self.name or str(self.data)
             self.log  = logging.getLogger(f'AMD[Generic={self.name}]')
 
     @staticmethod
