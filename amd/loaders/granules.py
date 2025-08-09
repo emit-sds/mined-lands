@@ -283,13 +283,13 @@ class Granule:
 
         for var, strat in conds.items():
             if var == 'clouds':
-                self.log.info('Filtering clouds')
+                self.log.info(f'Filtering clouds: {strat}')
                 self.filterClouds(strat)
             elif var in VariableSources:
-                self.log.info('Creating conditional mask')
+                self.log.info(f'Creating conditional mask: {var} {strat}')
                 self.maskConditional(var, strat)
             else:
-                self.log.error(f'Invalid mask provided: {var}: {strat}')
+                self.log.error(f'Invalid mask provided: {var} {strat}')
 
         return self.mask
 
