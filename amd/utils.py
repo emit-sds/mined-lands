@@ -61,8 +61,10 @@ def initLogging(opts, name=None, mode=None):
     logger
         Logger object with the given name, root logger if name is None
     """
-    # rasterio._io is very spammy
-    logging.getLogger("rasterio._io").setLevel(logging.ERROR)
+    # rasterio is very spammy
+    rio = logging.getLogger("rasterio")
+    rio.setLevel(logging.ERROR)
+    rio.propagate = False
 
     # Logging handlers
     handlers = []

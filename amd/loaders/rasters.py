@@ -273,7 +273,7 @@ class Raster:
 
         for var, strat in conds.items():
             if var in VariableSources:
-                self.log.info('Creating conditional mask')
+                self.log.info(f'Creating conditional mask: {var}: {strat}')
                 self.maskConditional(var, strat)
             else:
                 self.log.error(f'Invalid conditional provided: {var}: {strat}')
