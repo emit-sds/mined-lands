@@ -287,6 +287,12 @@ def cli(download_only, **options):
     """\
     Queries the EMIT coverage JSON for a list of FIDs that meet filter criterias
     """
+    logging.basicConfig(
+        level    = 'DEBUG',
+        format   = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        datefmt  = '%m-%d %H:%M',
+    )
+
     if download_only:
         download_coverage(file=download_only, no_ssl=options.get("no_ssl"))
         Logger.info('Finished')
@@ -295,9 +301,4 @@ def cli(download_only, **options):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        level    = 'DEBUG',
-        format   = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-        datefmt  = '%m-%d %H:%M',
-    )
     cli()
