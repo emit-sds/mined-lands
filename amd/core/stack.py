@@ -148,10 +148,14 @@ def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
         return ds.map(lambda data: frequency(data, ignore, skipna, mincount, type))
 
     # Retrieve the unique values across all pixels
-    values, _ = uniques(ds, ignore, skipna)
+    values, counts = uniques(ds, ignore, skipna)
+
+    Logger.info(f'Unique values: {values}')
+    Logger.info(f'Unique counts: {counts}')
 
     hold = []
     for i in range(values.size):
+        Logger.info(f'Retrieving the {i} most frequent values')
         func = partial(
             count,
             Nth = i,
@@ -169,6 +173,7 @@ def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
 
         # Check if the first band is fully NaN, break early if so
         if freq[0].isnull().all():
+            Logger.debug('First band is fully NaN, breaking')
             break
 
         hold.append(freq)
@@ -253,6 +258,7 @@ def stack(files):
     info, colors, count : xr.Dataset, xr.Dataset, xr.Dataset
     """
     # Load the files along a new dimension
+    Logger.debug('Loading data')
     ds = xr.open_mfdataset(files, concat_dim="product", combine="nested", parallel=True)
     ds.load()
 
@@ -265,10 +271,14 @@ def stack(files):
         pass
 
     # Get the frequency dataset
+    Logger.info('Calculating value frequencies')
     freqs = frequency(ds, type='value', **Config.stack)
+
+    Logger.info('Calculating count frequencies')
     count = frequency(ds, type='count', **Config.stack)
 
     # Colorize it
+    Logger.info('Colorizing frequencies')
     colors = amd.colorize(freqs, Config.colors)
 
     return info, colors, count
@@ -282,17 +292,20 @@ def main():
         Logger.info(f"Processing {group}")
         files = glob(f"{Config.output.dir}/**/*{group}.tiff")
 
-        Logger.debug(f"{len(files)} files: {files}")
+        Logger.debug(f"{len(files)} files (first 10): {files[:10]}")
         info, colors, counts = stack(files)
 
         # Save out
+        Logger.info('Saving freq-info')
         info.to_netcdf(f"{Config.output.dir}/{group}.freq-info.nc")
 
+        Logger.info('Saving colors')
         for var, vs in colors.items():
             for freq, fs in vs.groupby("freq"):
                 amd.name = f"{group}.freq-{freq}.colors"
                 amd.save(fs.squeeze(), dir=Config.output.dir, subdir=False, netcdf=False, geotiff=True)
 
+        Logger.info('Saving counts')
         for var, vs in counts.items():
             for freq, fs in vs.groupby("freq"):
                 amd.name = f"{group}.freq-{freq}.counts"
