@@ -89,4 +89,3 @@ When mineral assemblages of concern are compared with mine data bases such as th
 
 # Acknowledgements
 This work has been supported by funding from the Earth System Science Pathfinder Program Office (ESSP PO).
-<img width="468" height="657" alt="image" src="https://github.com/user-attachments/assets/c28fc8d5-a857-4847-ab14-4f8d6f783f0e" />
