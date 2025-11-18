@@ -77,13 +77,15 @@ We have developed a Jupyter Notebook that steps through hand describes several o
 When mineral assemblages of concern are compared with mine data bases such as the [USMIN](https://www.usgs.gov/centers/gggsc/science/usmin-mineral-deposit-database) data base, locations that may warrant more detailed investigation can be identified. Similarly, cross comparing the AMD mineral assemblages with hydrographical data such as the [National Hydrography Dataset](https://www.usgs.gov/national-hydrography/national-hydrography-dataset) can be a powerful approach as relating the AMD mineralogy to hydrological gradients or watersheds will help inform the end user on possible acidification of local surface waters and the path of this acidity.
 
 # References
-Brodrick, P. G., Clark, R. N., Swayze, G. A., Kokaly, R., Meyer, J., Ehlmann, B., Keebler, A., Thompson, D. R., & Green, R. O. (2023). EMIT L2b Algorithm: Mineral Detection and Related Products at the Pixel Scale---Theoretical Basis (EMITL2B_ATBD_v1) [Technical report]. NASA Jet Propulsion Laboratory.
-Clark, R. N., Swayze, G. A., Livo, K. E., Brodrick, P. G., Dobrea, E. N., Vijayarangan, S., ... & Querol, X. (2024). Imaging Spectroscopy: Earth and Planetary Remote Sensing with the PSI Tetracorder and Expert Systems from Rovers to EMIT and Beyond. The Planetary Science Journal, 5(12), 276.
-Farrand, W. H., & Bhattacharya, S. (2021). Tracking acid generating minerals and trace metal spread from mines using hyperspectral data: case studies from Northwest India. International Journal of Remote Sensing, 42(8), 2920-2939.
-Flores, H., Lorenz, S., Jackisch, R., Tusa, L., Contreras, I. C., Zimmermann, R., & Gloaguen, R. (2021). UAS-based hyperspectral environmental monitoring of acid mine drainage affected waters. Minerals, 11(2), 182.
-Green, R. O., Mahowald, N., Ung, C., Thompson, D. R., Bator, L., Bennet, M., ... & Zan, J. (2020, March). The Earth surface mineral dust source investigation: An Earth science imaging spectroscopy mission. In 2020 IEEE aerospace conference (pp. 1-15). IEEE.
-Swayze, G. A., Smith, K. S., Clark, R. N., Sutley, S. J., Pearson, R. M., Vance, J. S., ... & Roth, S. (2000). Using imaging spectroscopy to map acidic mine waste. Environmental Science & Technology, 34(1), 47-54.
-Zabcic, N., Rivard, B., Ong, C., & Müller, A. (2014). Using airborne hyperspectral data to characterize the surface pH and mineralogy of pyrite mine tailings. International Journal of Applied Earth Observation and Geoinformation, 32, 152-162.
+<ul>
+<li>Brodrick, P. G., Clark, R. N., Swayze, G. A., Kokaly, R., Meyer, J., Ehlmann, B., Keebler, A., Thompson, D. R., & Green, R. O. (2023). EMIT L2b Algorithm: Mineral Detection and Related Products at the Pixel Scale---Theoretical Basis (EMITL2B_ATBD_v1) [Technical report]. NASA Jet Propulsion Laboratory.</li>
+<li>Clark, R. N., Swayze, G. A., Livo, K. E., Brodrick, P. G., Dobrea, E. N., Vijayarangan, S., ... & Querol, X. (2024). Imaging Spectroscopy: Earth and Planetary Remote Sensing with the PSI Tetracorder and Expert Systems from Rovers to EMIT and Beyond. The Planetary Science Journal, 5(12), 276.</li>
+<li>Farrand, W. H., & Bhattacharya, S. (2021). Tracking acid generating minerals and trace metal spread from mines using hyperspectral data: case studies from Northwest India. International Journal of Remote Sensing, 42(8), 2920-2939.</li>
+<li>Flores, H., Lorenz, S., Jackisch, R., Tusa, L., Contreras, I. C., Zimmermann, R., & Gloaguen, R. (2021). UAS-based hyperspectral environmental monitoring of acid mine drainage affected waters. Minerals, 11(2), 182.</li>
+<li>Green, R. O., Mahowald, N., Ung, C., Thompson, D. R., Bator, L., Bennet, M., ... & Zan, J. (2020, March). The Earth surface mineral dust source investigation: An Earth science imaging spectroscopy mission. In 2020 IEEE aerospace conference (pp. 1-15). IEEE.</li>
+<li>Swayze, G. A., Smith, K. S., Clark, R. N., Sutley, S. J., Pearson, R. M., Vance, J. S., ... & Roth, S. (2000). Using imaging spectroscopy to map acidic mine waste. Environmental Science & Technology, 34(1), 47-54.</li>
+<li>Zabcic, N., Rivard, B., Ong, C., & Müller, A. (2014). Using airborne hyperspectral data to characterize the surface pH and mineralogy of pyrite mine tailings. International Journal of Applied Earth Observation and Geoinformation, 32, 152-162.</li>
+</ul>
 
 # Acknowledgements
 This work has been supported by funding from the Earth System Science Pathfinder Program Office (ESSP PO).
