@@ -16,7 +16,7 @@ from emit_tools import emit_xarray
 from mlky       import Config as C
 
 
-Logger = logging.getLogger('amd/utils')
+Logger = logging.getLogger(__name__)
 
 
 def initConfig(config, patch, defs, override, printconfig=False, printonly=False, initray=True):
@@ -43,45 +43,66 @@ def initConfig(config, patch, defs, override, printconfig=False, printonly=False
         ray.init(**C.ray)
 
 
-def initLogging(mode=None):
+def initLogging(opts, name=None, mode=None):
     """
     Initializes the logging module per the config
+
+    Parameters
+    ----------
+    opts : mlky.Sect
+        Logs section of a mlky config
+    name : str, default=None
+        Return a logger with this name
+    mode : str, default=None
+        If 'write', removes the log file if it already exists
+
+    Returns
+    -------
+    logger
+        Logger object with the given name, root logger if name is None
     """
+    # rasterio is very spammy
+    rio = logging.getLogger("rasterio")
+    rio.setLevel(logging.ERROR)
+    rio.propagate = False
+
     # Logging handlers
     handlers = []
 
     # Create console handler
     sh = logging.StreamHandler(sys.stdout)
 
-    if (level := C.log.terminal):
+    if (level := opts.terminal):
         sh.setLevel(level)
 
     handlers.append(sh)
 
-    if (file := C.log.file):
+    if (file := opts.file):
         file = Path(file)
 
-        if (mode or C.log.mode) == 'write' and file.exists():
-            os.remove(C.log.file)
+        if (mode or opts.mode) == 'write' and file.exists():
+            os.remove(opts.file)
 
         file.parent.mkdir(parents=True, exist_ok=True)
 
         # Add the file logging
         fh = logging.FileHandler(file)
-        fh.setLevel(C.log.level or logging.DEBUG)
+        fh.setLevel(opts.level or logging.DEBUG)
 
         handlers.append(fh)
 
     logging.basicConfig(
-        level    = C.log.get('level', 'DEBUG'),
-        format   = C.log.get('format', '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'),
-        datefmt  = C.log.get('format', '%m-%d %H:%M'),
+        level    = opts.get('level', 'DEBUG'),
+        format   = opts.get('format', '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'),
+        datefmt  = opts.get('format', '%m-%d %H:%M'),
         handlers = handlers,
     )
 
     if C:
         yaml = C.toYaml(listStyle='short', comments=None, header=False)
         Logger.debug(f'Working config:\n{yaml}')
+
+    return logging.getLogger(name)
 
 
 def getEarthAccessSession(interactive=False, persist=True):

@@ -16,7 +16,7 @@ from amd.loaders import (
 )
 
 
-Logger = logging.getLogger('batch')
+Logger = logging.getLogger(__name__)
 
 
 def parseGlob(products):
@@ -56,7 +56,8 @@ def process():
     opts = Sect(
         hashmap  = AMD.makeHashmap(Config.hashmap),
         classify = Config.classify,
-        colorize = Config.colors
+        colorize = Config.colors,
+        logging  = Config.log,
     ) | Config.output
 
     # Place into ray shared memory

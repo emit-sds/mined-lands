@@ -14,7 +14,7 @@ from amd import utils
 from amd.core import query
 
 
-Logger = logging.getLogger('amd/cli')
+Logger = logging.getLogger(__name__)
 
 
 @click.group(name='amd')
@@ -22,7 +22,7 @@ def cli():
     """\
     EMIT Applications Support for the Assessment of Mined Lands Remediation
     """
-    # utils.initLogging()
+    # utils.initLogging(C.log)
 
 
 # Path to the mlky definitions file
@@ -46,7 +46,7 @@ def batch(disablevalidate, **kwargs):
     if C.validateObj() or disablevalidate:
         from amd.batch import process
 
-        utils.initLogging()
+        utils.initLogging(C.log)
         process()
     else:
         Logger.error('Please correct the configuration errors before proceeding')
@@ -69,7 +69,7 @@ def stack(disablevalidate, **kwargs):
     if C.validateObj() or disablevalidate:
         from amd.core.stack import main
 
-        utils.initLogging()
+        utils.initLogging(C.log)
         main()
     else:
         Logger.error('Please correct the configuration errors before proceeding')

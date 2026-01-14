@@ -186,13 +186,13 @@
       key: '*'
       sdesc: Variable to classify
 
-      .filter:
+      .mask:
         dtype: list
         sdesc: Filters to apply
         match:
           - case: str
             key: '*'
-            sdesc: Variable to filter with
+            sdesc: Variable to create a mask with
             dtype: str
 
       .default:
@@ -202,5 +202,5 @@
 
       .mask_class:
         dtype: float
-        sdesc: Default value to replace with where the filter mask hits
+        sdesc: Default value to replace with where the mask hits
         default: 0

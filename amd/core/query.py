@@ -8,7 +8,7 @@ import click
 from shapely.geometry import Polygon
 
 
-Logger = logging.getLogger('amd/query')
+Logger = logging.getLogger(__name__)
 CovURL = 'https://earth.jpl.nasa.gov/emit-mmgis-lb/Missions/EMIT/Layers/coverage/coverage_pub.json'
 Info = {
     'granule' : 'L2A Reflectance Download',
@@ -132,6 +132,54 @@ def filter_clouds(coverage, fraction, inplace=True):
     return select
 
 
+def download_coverage(file=None, no_ssl=False):
+    """
+    Downloads the EMIT pub_coverage.json
+
+    Parameters
+    ----------
+    file : str, default=None
+        Path to the local file. If provided, the pub_coverage.json will be saved to
+        this path
+    no_ssl : bool, default=False
+        If True, disables SSL certificate validation when downloading
+
+    Returns
+    -------
+    dict
+        Parsed JSON content
+
+    Raises
+    ------
+    HTTPError
+        If the HTTP request fails
+    URLError
+        If there is a network-related error
+    JSONDecodeError
+        If the loaded content is not valid JSON
+    """
+    Logger.info(f'Downloading coverage from URL: {CovURL}')
+    try:
+        with request.urlopen(CovURL) as url:
+            coverage = json.load(url)
+    except Exception:
+        if no_ssl:
+            Logger.info('Trying without validating SSL cert')
+            context = ssl._create_unverified_context()
+            with request.urlopen(CovURL, context=context) as url:
+                coverage = json.load(url)
+        else:
+            raise
+
+    # Save JSON locally
+    if file:
+        Logger.info(f'Writing coverage to json: {file}')
+        with open(file, "w") as f:
+            json.dump(coverage, f, indent=2)
+
+    return coverage
+
+
 def query(
     coverage_file = None,
     lat_bounds    = (-89.9, 89.9),
@@ -176,18 +224,7 @@ def query(
         with open(coverage_file, 'rb') as file:
             coverage = json.load(file)
     else:
-        Logger.info('Loading coverage from URL')
-        try:
-            with request.urlopen(CovURL) as url:
-                coverage = json.load(url)
-        except:
-            if no_ssl:
-                Logger.info('Trying without validating SSL cert')
-                context = ssl._create_unverified_context()
-                with request.urlopen(CovURL, context=context) as url:
-                    coverage = json.load(url)
-            else:
-                raise
+        coverage = download_coverage(no_ssl=no_ssl)
 
     filter_roi(coverage, lat_bounds, lon_bounds)
     filter_time(coverage, start_date, end_date)
@@ -243,17 +280,25 @@ def query(
 @click.option('-ns', '--no-ssl', is_flag=True,
     help='Disable SSL cert verification [not recommended]'
 )
-def cli(**options):
+@click.option('-do', '--download-only', type=str,
+    help='Only downloads the coverage file to this path then exits'
+)
+def cli(download_only, **options):
     """\
     Queries the EMIT coverage JSON for a list of FIDs that meet filter criterias
     """
-    query(**options)
-
-
-if __name__ == '__main__':
     logging.basicConfig(
         level    = 'DEBUG',
         format   = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
         datefmt  = '%m-%d %H:%M',
     )
+
+    if download_only:
+        download_coverage(file=download_only, no_ssl=options.get("no_ssl"))
+        Logger.info('Finished')
+    else:
+        query(**options)
+
+
+if __name__ == '__main__':
     cli()

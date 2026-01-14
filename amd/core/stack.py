@@ -1,10 +1,11 @@
 import logging
 import re
-from datetime import datetime as dtt
-from glob import glob
-from pathlib import Path
+from datetime  import datetime as dtt
+from functools import partial
+from glob      import glob
+from pathlib   import Path
 
-import numpy as np
+import numpy  as np
 import xarray as xr
 from mlky import Config
 
@@ -13,7 +14,7 @@ from amd.core.amd import AMD
 # Generic AMD object to access its functions
 amd = AMD(None)
 
-Logger = logging.getLogger("AMD[Stack]")
+Logger = logging.getLogger(__name__)
 
 
 def subselect(ds, **sel):
@@ -50,7 +51,77 @@ def subselect(ds, **sel):
     return ds.sel(**sels)
 
 
-def nCount(ds, mincount=0, skipna=False):
+def uniques(data, ignore=[], skipna=False):
+    """
+    Retrieves the unique values and the count of these values for a given array
+
+    Parameters
+    ----------
+    data : xr.DataArray
+        Object to operate on
+    skipna : bool, default=False
+        Skips NaN values
+    ignore : list, default=[]
+        Values to ignore
+
+    Returns
+    -------
+    values, counts : tuple[np.array]
+        Values are the unique values, counts are the corresponding count of the unique
+        values
+    """
+    values, counts = np.unique(data, return_counts=True)
+
+    if skipna and np.isnan(values[-1]):
+        values = values[:-1]
+        counts = counts[:-1]
+
+    if ignore:
+        arrays = [values == i for i in ignore]
+        remove = np.bitwise_or.reduce(arrays)
+        values = values[~remove]
+        counts = counts[~remove]
+
+    return values, counts
+
+
+def count(x, Nth=0, type='value', mincount=0, **kwargs):
+    """
+    Retrieves the Nth (zero-indexed) most frequent value in an array
+
+    Parameters
+    ----------
+    x : np.array
+        Object to operate on
+    Nth : int, default=0
+        Retrieve the Nth largest counted value in reverse notation, eg. 0 = largest
+    type : 'value' | 'count', default='value'
+        Type of value to return, either the count of the value or the value itself
+    mincount : int, default=0
+        The minimum count for a value to be valid
+
+    Returns
+    -------
+    float
+        Nth most frequent value or NaN if there isn't one
+    """
+    assert type in (opts := {'value', 'count'}), f"Type must be one of: {opts}, got: {type}"
+
+    values, counts = uniques(x, **kwargs)
+
+    if Nth < len(counts):
+        sort = np.argsort(-counts)
+        index = sort[Nth]
+
+        if counts[index] >= mincount:
+            if type == 'count':
+                return counts[index]
+            return values[index]
+
+    return np.nan
+
+
+def frequency(ds, ignore=[], skipna=False, mincount=0, type='value'):
     """
     Retrieves the Nth highest value count over a 2D array. Expected input shape is
     (product, *location), where *location is one or more dimensions
@@ -59,42 +130,53 @@ def nCount(ds, mincount=0, skipna=False):
 
     Parameters
     ----------
-    ds : xr.DataArray
+    ds : xr.Dataset | xr.DataArray
         Object to operate on
     mincount : int, default=0
         The minimum count for a value to be valid
     skipna : bool, default=False
+        Skips NaN values
+    ignore : list, default=[]
+        Values to ignore
 
     Returns
     -------
-    xr.DataArray
+    xr.Dataset | xr.DataArray
     """
-    def count(x):
-        nonlocal uniques
+    # Run this function for each variable in the dataset
+    if isinstance(ds, xr.Dataset):
+        return ds.map(lambda data: frequency(data, ignore, skipna, mincount, type))
 
-        values, counts = np.unique(x, return_counts=True)
+    # Retrieve the unique values across all pixels
+    values, counts = uniques(ds, ignore, skipna)
 
-        if skipna and np.isnan(values[-1]):
-            values = values[:-1]
-            counts = counts[:-1]
-
-        uniques = max(len(counts), uniques)
-
-        if len(counts) >= n:
-            index = np.argsort(counts)[-n]
-
-            if counts[index] > mincount:
-                return values[index]
-
-        return np.nan
-
-    uniques = 2
-    n = 1
+    Logger.info(f'Unique values: {values}')
+    Logger.info(f'Unique counts: {counts}')
 
     hold = []
-    while n < uniques:
-        hold.append(xr.apply_ufunc(count, ds, input_core_dims=[['product']], vectorize=True))
-        n += 1
+    for i in range(values.size):
+        Logger.info(f'Retrieving the {i} most frequent values')
+        func = partial(
+            count,
+            Nth = i,
+            type = type,
+            ignore = ignore,
+            skipna = skipna,
+            mincount = mincount
+        )
+        freq = xr.apply_ufunc(func, ds,
+            input_core_dims = [['product']],
+            vectorize = True,
+            dask = 'parallelized',
+            output_dtypes = [float]
+        )
+
+        # Check if the first band is fully NaN, break early if so
+        if freq[0].isnull().all():
+            Logger.debug('First band is fully NaN, breaking')
+            break
+
+        hold.append(freq)
 
     if hold:
         return xr.concat(hold, dim='freq')
@@ -173,10 +255,11 @@ def stack(files):
 
     Returns
     -------
-    info, colors : xr.Dataset, xr.Dataset
+    info, colors, count : xr.Dataset, xr.Dataset, xr.Dataset
     """
     # Load the files along a new dimension
-    ds = xr.open_mfdataset(files, concat_dim="product", combine="nested")
+    Logger.debug('Loading data')
+    ds = xr.open_mfdataset(files, concat_dim="product", combine="nested", parallel=True)
     ds.load()
 
     # Extract useful information
@@ -188,12 +271,17 @@ def stack(files):
         pass
 
     # Get the frequency dataset
-    ds = nCount(ds)
+    Logger.info('Calculating value frequencies')
+    freqs = frequency(ds, type='value', **Config.stack)
+
+    Logger.info('Calculating count frequencies')
+    count = frequency(ds, type='count', **Config.stack)
 
     # Colorize it
-    colors = amd.colorize(ds, Config.colors)
+    Logger.info('Colorizing frequencies')
+    colors = amd.colorize(freqs, Config.colors)
 
-    return info, colors
+    return info, colors, count
 
 
 def main():
@@ -204,14 +292,23 @@ def main():
         Logger.info(f"Processing {group}")
         files = glob(f"{Config.output.dir}/**/*{group}.tiff")
 
-        Logger.debug(f"{len(files)} files: {files}")
-        info, colors = stack(files)
+        Logger.debug(f"{len(files)} files (first 10): {files[:10]}")
+        info, colors, counts = stack(files)
 
         # Save out
+        Logger.info('Saving freq-info')
         info.to_netcdf(f"{Config.output.dir}/{group}.freq-info.nc")
+
+        Logger.info('Saving colors')
         for var, vs in colors.items():
             for freq, fs in vs.groupby("freq"):
                 amd.name = f"{group}.freq-{freq}.colors"
+                amd.save(fs.squeeze(), dir=Config.output.dir, subdir=False, netcdf=False, geotiff=True)
+
+        Logger.info('Saving counts')
+        for var, vs in counts.items():
+            for freq, fs in vs.groupby("freq"):
+                amd.name = f"{group}.freq-{freq}.counts"
                 amd.save(fs.squeeze(), dir=Config.output.dir, subdir=False, netcdf=False, geotiff=True)
 
     Logger.info("Finished")
